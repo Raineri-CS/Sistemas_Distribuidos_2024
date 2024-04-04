@@ -27,12 +27,9 @@ public class ServerApplication {
             System.out.println("Couldnt create socket at ServerApplication run()" + e);
         }
         System.out.println("Ouvindo por conexoes na porta " + port);
-        // TODO Loop de aceitacao de conexoes
 
-        // TODO CADA THREAD DO SERVIDOR VAI TER UMA THREAD DO CLIENTE PARA CONSEGUIR ITERAR EM CADA CONEXAO POR UM FOR LOOP
-//        Socket inConnection;
         // Thread de aceitacao de conexoes
-        Thread acceptThread = new Thread(() -> {
+       new Thread(() -> {
             while (!this.shutdownRequest) {
                 try {
                     Socket inConnection = serverSocket.accept();
@@ -50,13 +47,16 @@ public class ServerApplication {
                     System.out.println("Erro ao aceitar conexão: " + e.getMessage());
                 }
             }
-        });
-        acceptThread.start();
-        for (ClientHandler sock : clients) {
-            // For each socket in clients...
-            // FIXME do i create a new clientHandler here or when adding to the clients list?
-            // TODO read if theres a pending message
-        }
+        }).start();
+        // Thread que fica processando os dados
+        // FIXME cuidar com concorrencia, talvez uma fila de operacoes a fazer ?
+        new Thread(() ->{
+            for (ClientHandler sock : clients) {
+                // For each socket in clients...
+                // FIXME do i create a new clientHandler here or when adding to the clients list?
+                // TODO read if theres a pending message
+            }
+        }).start();
     }
 
     public void terminate() {
