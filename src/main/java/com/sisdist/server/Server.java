@@ -9,11 +9,12 @@ public class Server {
     public final static int PORT = 21234;
 
     private final ServerApplication app = new ServerApplication();
-    public Server(){
 
-        try{
+    public Server() {
+
+        try {
             app.run(PORT);
-        }catch(IOException e){
+        } catch (IOException e) {
             System.out.println("Error in Server() constructor");
         }
         // TODO inicializacao necessaria e configuracoes do server
@@ -25,7 +26,7 @@ public class Server {
         app.terminate();
     }
 
-    public static void main(String args[]){
+    public static void main(String[] args) {
         Server serv = new Server();
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {

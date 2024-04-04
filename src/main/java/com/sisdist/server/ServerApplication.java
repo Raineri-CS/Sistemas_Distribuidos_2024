@@ -30,22 +30,21 @@ public class ServerApplication {
         // TODO Loop de aceitacao de conexoes
 
         // TODO CADA THREAD DO SERVIDOR VAI TER UMA THREAD DO CLIENTE PARA CONSEGUIR ITERAR EM CADA CONEXAO POR UM FOR LOOP
-
+//        Socket inConnection;
         // Thread de aceitacao de conexoes
-        Thread acceptThread = new Thread(() ->{
+        Thread acceptThread = new Thread(() -> {
             while (!this.shutdownRequest) {
                 try {
                     Socket inConnection = serverSocket.accept();
-                    ClientHandler localInConnection = new ClientHandler(inConnection);
-                    if (!clients.add(localInConnection)) {
-                       // Nao adicionou, printar erro aqui?
-                    }else{
-                        localInConnection.start();
-                    }
-                    if(inConnection.isConnected()){
-                        // Se nao nulo...
-                    }
-                } catch (SocketTimeoutException e){
+                    new Thread(() -> {
+                        ClientHandler localInConnection = new ClientHandler(inConnection);
+                        if (!clients.add(localInConnection)) {
+                            // Nao adicionou, printar erro aqui?
+                        } else {
+                            localInConnection.start();
+                        }
+                    }).start();
+                } catch (SocketTimeoutException e) {
                     // Tratar o timeout aqui, fechar a socket?
                 } catch (IOException e) {
                     System.out.println("Erro ao aceitar conexão: " + e.getMessage());
