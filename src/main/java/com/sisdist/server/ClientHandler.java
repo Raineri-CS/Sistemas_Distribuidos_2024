@@ -17,8 +17,10 @@ public class ClientHandler extends Thread {
         try {
             if (!clientSocket.isClosed()) {
                 BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
-                // TODO fazer o processamento dos dados que vieram
-                System.out.println(buf);
+                String line;
+                while ((line = buf.readLine()) != null) {
+                    System.out.println(line);
+                }
             } else {
                 System.out.println("Socket is closed, cannot read.");
             }
