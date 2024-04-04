@@ -7,17 +7,10 @@ import java.net.Socket;
 
 public class ClientHandler extends Thread {
     private final Socket clientSocket;
-    private Thread handlerThread;
 
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
-        this.handlerThread = null;
-    }
-
-    public ClientHandler(Socket socket, Thread ownThread) {
-        this.clientSocket = socket;
-        this.handlerThread = ownThread;
     }
 
     public void read() {
@@ -44,14 +37,6 @@ public class ClientHandler extends Thread {
 
     public Socket getSocket() {
         return clientSocket;
-    }
-
-    public Thread getThread() {
-        return handlerThread;
-    }
-
-    public void setThread(Thread ownThread) {
-        this.handlerThread = ownThread;
     }
 
     @Override
