@@ -1,0 +1,15 @@
+
+s
+java:S2589-"7Remove this expression which always evaluates to "true"(þšµ›J$3547a266-840c-419f-b8fd-e956ad0aefed
+†
+java:S1124	"EReorder the modifiers to comply with the Java Language Specification.(¾¬¾ˆúÿÿÿÿJ$4a84438f-2ed5-47da-8eb7-8c6da1ac4d33
+f	java:S106"+Replace this use of System.out by a logger.(éå˜“J$175778ae-88fc-4d6c-ab71-f929eccbd12c
+n
+java:S1135"2Complete the task associated to this TODO comment.(Åï¬‡J$a5e643aa-a353-42dd-a1b5-44c8f0f86c1c
+n
+java:S1135"2Complete the task associated to this TODO comment.(Ñß†„J$b7e360e1-5eb7-4c19-8466-5ae5c5340ab8
+f	java:S106%"+Replace this use of System.out by a logger.(²ê‰èJ$6bed0249-4a48-43dc-8904-f2bcb7411efb
+f	java:S106)"+Replace this use of System.err by a logger.(Š¡á´J$b95c7063-f3a4-4a0d-81bb-3f1a3c4f6966
+f	java:S1062"+Replace this use of System.err by a logger.(¹Ã²±J$2d43914a-2c59-4c3e-b5a8-b4b20d4e56db
+k
+java:S2093 "*Change this "try" to a try-with-resources.(¡»¢üùÿÿÿÿJ$e416354d-dad8-4492-acf9-cfd179c746d3
