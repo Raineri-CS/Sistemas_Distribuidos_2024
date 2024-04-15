@@ -54,7 +54,8 @@ public class ServerApplication {
             for (ClientHandler sock : clients) {
                 // For each socket in clients...
                 // FIXME do i create a new clientHandler here or when adding to the clients list?
-                // TODO read if theres a pending message
+                // TODO read if theres a pending message'
+
             }
         }).start();
     }

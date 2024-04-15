@@ -9,6 +9,10 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
+import java.io.OutputStream;
+import java.io.PrintWriter;
+
+
 public class ClientApplication extends Application {
     private final String IP;
     private final int PORT;
@@ -30,10 +34,23 @@ public class ClientApplication extends Application {
         try {
             Socket socket = new Socket();
             socket.connect(new InetSocketAddress(IP, PORT));
-            // Lidar com a lógica de comunicação com o servidor
+
+            // Verifica se o socket está aberto
+            if (!socket.isClosed()) {
+                // Envia uma mensagem ao servidor
+                OutputStream outputStream = socket.getOutputStream();
+                PrintWriter writer = new PrintWriter(outputStream, true);
+
+                // Escreva a mensagem que deseja enviar ao servidor
+                writer.println("Hello, Server!");
+
+                // Feche o escritor após o uso
+                writer.close();
+            }
         } catch (IOException e) {
-            // Tratar exceções de conexão aqui
+            // Trate exceções de conexão aqui
             e.printStackTrace();
         }
+
     }
 }
