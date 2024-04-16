@@ -10,10 +10,9 @@ import java.util.Collections;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 
-public class ClientHandler extends Thread {
+public class ClientHandler implements Runnable {
     public static final int FS = '\u001c';
     private final Socket clientSocket;
-    private volatile boolean isRunning = true;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -24,7 +23,6 @@ public class ClientHandler extends Thread {
             BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
             readMessages(buf);
         } catch (IOException e) {
-            this.isRunning = false;
             System.err.println("Error in ClientHandler read()" + e);
         }
     }
@@ -72,9 +70,6 @@ public class ClientHandler extends Thread {
 
     @Override
     public void run() {
-        // TODO o loop da thread aqui
-        while (isRunning) {
-            read();
-        }
+        read();
     }
 }
