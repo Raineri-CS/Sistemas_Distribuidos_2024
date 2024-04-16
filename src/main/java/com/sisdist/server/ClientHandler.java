@@ -3,11 +3,17 @@ package com.sisdist.server;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Collections;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 
 public class ClientHandler extends Thread {
+    public static final int FS = '\u001c';
     private final Socket clientSocket;
-
+    private volatile boolean isRunning = true;
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -15,25 +21,48 @@ public class ClientHandler extends Thread {
 
     public void read() {
         try {
-            if (!clientSocket.isClosed()) {
-                BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
-                String line;
-                while ((line = buf.readLine()) != null) {
-                    System.out.println(line);
-                }
-            } else {
-                System.out.println("Socket is closed, cannot read.");
-            }
+            BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
+            readMessages(buf);
         } catch (IOException e) {
-            System.out.println("Error in ClientHandler read()" + e);
+            this.isRunning = false;
+            System.err.println("Error in ClientHandler read()" + e);
         }
     }
 
-    public void terminate() {
+    private void processMessage(String message) {
+        Gson gson = new Gson();
+        InMessage json;
+        OutMessage out;
         try {
-            clientSocket.close();
+            json = gson.fromJson(message, InMessage.class);
+            if (json == null) throw new JsonParseException("");
+
+            out = new OutMessage(json.operation(), "ACCEPTED", Collections.emptyMap());
+        } catch (Exception e) {
+            out = new OutMessage(null, "REJECTED", null);
+        }
+
+        String outJson = gson.toJson(out);
+
+        try {
+            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
+            writer.println(outJson + (char) FS);
+            writer.flush();
         } catch (IOException e) {
-            System.out.println("Couldnt close socket in ClientHandler terminate()" + e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void readMessages(BufferedReader buf) throws IOException {
+        StringBuilder message = new StringBuilder();
+        int c;
+        while ((c = buf.read()) != -1) {
+            if (c == FS){
+                processMessage(message.toString());
+                message = new StringBuilder();
+            } else {
+                message.append((char) c);
+            }
         }
     }
 
@@ -44,7 +73,7 @@ public class ClientHandler extends Thread {
     @Override
     public void run() {
         // TODO o loop da thread aqui
-        while (true) {
+        while (isRunning) {
             read();
         }
     }

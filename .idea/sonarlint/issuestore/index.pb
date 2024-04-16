@@ -19,3 +19,12 @@ f
 mvnw.cmd,1/f/1f1763f358c257ea3515417352b82b0165647ad1
 f
 6src/main/java/com/sisdist/server/ServerController.java,d/5/d53055312cf92c76dc40488941f19bdb9026734e
+:
+
+.gitignore,a/5/a5cc2925ca8258af241be7e5b0381edf30266302
+g
+7src/main/java/com/sisdist/server/ServerApplication.java,4/c/4cbd67398155baa3bc219dfb9883fa3ba384e892
+]
+-src/main/java/com/sisdist/server/SisDist.java,6/2/621c066e4f7ff41c0a582f3f2c05d3dae61abd41
+c
+3src/main/java/com/sisdist/server/ClientHandler.java,2/1/21f7709ff855718ea4496cc7658cda8eaefdcfe8
