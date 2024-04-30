@@ -7,4 +7,5 @@ public record IN_TWO_PARAMETERS(
         Map<String, String> data
 ) implements Message{
     public String getOperation(){ return operation; }
+    public Map<String, String> getData(){ return data;}
 }

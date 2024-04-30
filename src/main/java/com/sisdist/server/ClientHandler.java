@@ -59,9 +59,11 @@ public class ClientHandler implements Runnable {
             switch (operation) {
                 case "LOGIN_CANDIDATE":
                 case "LOGIN_RECRUITER":
+                    String tempToken = null;
                     json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
                     // Para qualquer login, gerar o token para assinar o pacote
-
+                    // TODO puxar o login do banco
+//                    tempToken = genToken()
                     break;
                 case "LOGOUT_CANDIDATE":
                 case "LOGOUT_RECRUITER":
