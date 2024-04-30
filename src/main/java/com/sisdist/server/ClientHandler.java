@@ -16,6 +16,7 @@ import com.google.gson.JsonParser;
 import com.sisdist.server.messages.IN_THREE_PARAMETERS;
 import com.sisdist.server.messages.IN_TWO_PARAMETERS;
 import com.sisdist.server.messages.Message;
+import com.sisdist.server.messages.OUT_THREE_PARAMETERS;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
@@ -63,6 +64,35 @@ public class ClientHandler implements Runnable {
                     json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
                     // Para qualquer login, gerar o token para assinar o pacote
                     // TODO puxar o login do banco
+                    String email = jsonObject.get("email").getAsString();
+                    String senha = jsonObject.get("password").getAsString();
+                    if(!email.isEmpty() && !senha.isEmpty()){
+                        // Informacoes vieram no pacote
+                        Candidato sqlResult = DatabaseManager.readClienteCandidato(email);
+
+                        if(senha.equals(sqlResult.getSenha())){
+                            // Senha correta, mandar o pacote de aceitacao
+                            switch (operation){
+                                case "LOGIN_CANDIDATE":
+                                    tempToken = genToken(sqlResult.getId(), "CANDIDATE");
+                                    break;
+                                case "LOGIN_RECRUITER":
+                                    tempToken = genToken(sqlResult.getId(), "RECRUITER");
+                                    break;
+                                default:
+                                    System.err.println("ERRO NO OPERATION\n");
+                            }
+                            // FIXME popular isso aqui
+                            Map<String, String> tempData = new Map<String><String>;
+                            out = new OUT_THREE_PARAMETERS(operation,"SUCCESS", new Map )
+                        }else{
+                            // Senha incorreta, mandar o pacote de recusa
+                        }
+
+                    }else{
+                        // TODO tratar quando o pacote vir faltando dados
+                    }
+
 //                    tempToken = genToken()
                     break;
                 case "LOGOUT_CANDIDATE":

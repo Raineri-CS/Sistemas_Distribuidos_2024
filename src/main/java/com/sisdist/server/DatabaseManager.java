@@ -14,6 +14,8 @@ public class DatabaseManager {
     private static final String USER = "root";
     private static final String PASSWORD = "0910";
 
+    public DatabaseManager(){}
+
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
@@ -33,24 +35,25 @@ public class DatabaseManager {
         }
     }
 
-    public static void readClienteCandidato(int id) {
-        String sql = "SELECT * FROM Cliente_candidato WHERE ID = ?";
+    public static Candidato readClienteCandidato(String email) {
+        String sql = "SELECT * FROM Cliente_candidato WHERE Email = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setInt(1, id);
+            statement.setString(1, email);
             ResultSet resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
+                int id = resultSet.getInt("ID");
                 String nome = resultSet.getString("Nome");
-                String email = resultSet.getString("Email");
-                // Ler outros campos, se necessário
-                System.out.println("ID: " + id + ", Nome: " + nome + ", Email: " + email);
+                return new Candidato(id, nome, email);
             } else {
                 System.out.println("Candidato não encontrado.");
+                return null;
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            return null;
         }
     }
 
