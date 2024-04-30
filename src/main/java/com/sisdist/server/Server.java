@@ -13,7 +13,6 @@ public class Server {
     public static void main(String[] args) {
         ServerApplication app = new ServerApplication();
         app.start();
-
         handleFinish(app);
     }
 
@@ -21,11 +20,13 @@ public class Server {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         try {
             String teste = reader.readLine();
-            while (!teste.equals("0")) {
-                // Fazer alguma coisa enquanto o usuário não inserir "0"
-                // Por exemplo:
-                LOGGER.info("Você inseriu: " + teste);
-                teste = reader.readLine(); // Lê a próxima linha
+            if(teste != null){
+                while (!teste.equals("0")) {
+                    // Fazer alguma coisa enquanto o usuário não inserir "0"
+                    // Por exemplo:
+                    LOGGER.info("Você inseriu: " + teste);
+                    teste = reader.readLine(); // Lê a próxima linha
+                }
             }
         } catch (IOException e) {
             LOGGER.severe("Erro de entrada/saída: " + e.getMessage());

@@ -1,19 +1,13 @@
 package com.sisdist.client;
 
-import javafx.scene.Scene;
-import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.stage.Stage;
-
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import java.io.OutputStream;
-import java.io.PrintWriter;
+import java.util.logging.Logger;
 
 
-public class ClientApplication extends Application {
+public class ClientApplication {
     private final String IP;
     private final int PORT;
 
@@ -22,35 +16,27 @@ public class ClientApplication extends Application {
         this.PORT = PORT;
     }
 
-    @Override
-    public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader((ClientApplication.class.getResource("home_view.fxml")));
-        Scene scene = new Scene(fxmlLoader.load(), 640, 480);
-        stage.setTitle("Client");
-        stage.setScene(scene);
-        stage.show();
-
-        // Estabelecer conexão com o servidor aqui
-        try {
-            Socket socket = new Socket();
+    public void start() {
+        try (Socket socket = new Socket()) {
             socket.connect(new InetSocketAddress(IP, PORT));
 
-            // Verifica se o socket está aberto
-            if (!socket.isClosed()) {
-                // Envia uma mensagem ao servidor
-                OutputStream outputStream = socket.getOutputStream();
-                PrintWriter writer = new PrintWriter(outputStream, true);
+            if (socket.isConnected()) {
+                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+                writer.println("{\"operation\":\"LOGIN_CANDIDATE\",\"data\":{\"email\":\"some1@email.com\",\"password\":\"some_password\",\"name\":\"SomeName\",\"industry\":\"SomeBranch\",\"description\":\"Somedescription\"},\"token\":\"some_token\"}");
+                System.out.println("Mensagem enviada ao servidor");
 
-                // Escreva a mensagem que deseja enviar ao servidor
-                writer.println("Hello, Server!");
+                BufferedReader buf = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-                // Feche o escritor após o uso
-                writer.close();
+                String line;
+                while ((line = buf.readLine()) != null) {
+                    System.out.println("Mensagem do servidor: " + line);
+                }
+            } else {
+                System.err.println("Não foi possível conectar ao servidor.");
             }
         } catch (IOException e) {
-            // Trate exceções de conexão aqui
-            e.printStackTrace();
+            System.err.println("Erro ao tentar criar a socket " + e.getMessage());
         }
-
     }
+
 }
