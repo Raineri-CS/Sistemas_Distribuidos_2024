@@ -18,78 +18,69 @@ public class DatabaseManager {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-    public static void create(String tabela, String @NotNull ... dados) {
-        String sql = "INSERT INTO " + tabela + " VALUES (" + repeat("?,", dados.length - 1) + "?)";
+    public static void createClienteCandidato(String nome, String email, String senha) {
+        String sql = "INSERT INTO Cliente_candidato (Nome, Email, Senha) VALUES (?, ?, ?)";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            for (int i = 0; i < dados.length; i++) {
-                statement.setString(i + 1, dados[i]);
-            }
+            statement.setString(1, nome);
+            statement.setString(2, email);
+            statement.setString(3, senha);
             statement.executeUpdate();
-            System.out.println("Registro criado com sucesso!");
+            System.out.println("Candidato criado com sucesso!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void read(String tabela, int id) {
-        String sql = "SELECT * FROM " + tabela + " WHERE id = ?";
+    public static void readClienteCandidato(int id) {
+        String sql = "SELECT * FROM Cliente_candidato WHERE ID = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, id);
             ResultSet resultSet = statement.executeQuery();
 
-            // Processar o resultado da consulta
             if (resultSet.next()) {
-                // Exemplo: leitura de dados
-                String nome = resultSet.getString("nome");
-                String ramo = resultSet.getString("ramo");
-                // E assim por diante...
-                System.out.println("Nome: " + nome + ", Ramo: " + ramo);
+                String nome = resultSet.getString("Nome");
+                String email = resultSet.getString("Email");
+                // Ler outros campos, se necessário
+                System.out.println("ID: " + id + ", Nome: " + nome + ", Email: " + email);
             } else {
-                System.out.println("Registro não encontrado.");
+                System.out.println("Candidato não encontrado.");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void update(String tabela, int id, String... novosDados) {
-        String sql = "UPDATE " + tabela + " SET ";
-        for (int i = 0; i < novosDados.length; i++) {
-            sql += (i == 0 ? "" : ", ") + "coluna" + (i + 1) + " = ?";
-        }
-        sql += " WHERE id = ?";
+    public static void updateClienteCandidato(int id, String novoNome, String novoEmail, String novaSenha) {
+        String sql = "UPDATE Cliente_candidato SET Nome = ?, Email = ?, Senha = ? WHERE ID = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            for (int i = 0; i < novosDados.length; i++) {
-                statement.setString(i + 1, novosDados[i]);
-            }
-            statement.setInt(novosDados.length + 1, id);
+            statement.setString(1, novoNome);
+            statement.setString(2, novoEmail);
+            statement.setString(3, novaSenha);
+            statement.setInt(4, id);
             statement.executeUpdate();
-            System.out.println("Registro atualizado com sucesso!");
+            System.out.println("Candidato atualizado com sucesso!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public static void delete(String tabela, int id) {
-        String sql = "DELETE FROM " + tabela + " WHERE id = ?";
+    public static void deleteClienteCandidato(int id) {
+        String sql = "DELETE FROM Cliente_candidato WHERE ID = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, id);
             statement.executeUpdate();
-            System.out.println("Registro deletado com sucesso!");
+            System.out.println("Candidato deletado com sucesso!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    private static String repeat(String str, int times) {
-        return new String(new char[times]).replace("\0", str);
-    }
 }
