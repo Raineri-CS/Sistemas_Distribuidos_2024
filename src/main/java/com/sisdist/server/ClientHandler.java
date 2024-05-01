@@ -65,7 +65,7 @@ public class ClientHandler implements Runnable {
         // Definicao dos objetos a serem usados
         JsonObject jsonObject = null;
         JsonObject dataObject = null;
-        Message json = null;
+        Message jsonMessage = null;
         Candidato sqlResult = null;
         Map<String, String> tempData = new HashMap<>();
 
@@ -76,9 +76,8 @@ public class ClientHandler implements Runnable {
             switch (operation) {
                 case "LOGIN_CANDIDATE":
                 case "LOGIN_RECRUITER":
-                    json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
                     // Para qualquer login, gerar o token para assinar o pacote
-                    // TODO puxar o login do banco
                     dataObject = jsonObject.get("data").getAsJsonObject();
                     email = dataObject.get("email").getAsString();
                     senha = dataObject.get("password").getAsString();
@@ -102,7 +101,8 @@ public class ClientHandler implements Runnable {
                                 tempData.put("token", tempToken);
                                 out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", tempData);
                             } else {
-                                // Senha incorreta, mandar o pacote de recusa
+                                // Infos incorretas, mandar o pacote de recusa
+                                out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                             }
                         }
                     } else {
@@ -113,11 +113,11 @@ public class ClientHandler implements Runnable {
                     break;
                 case "LOGOUT_CANDIDATE":
                 case "LOGOUT_RECRUITER":
-                    json = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
                     // TODO as mensagens atribuindo pra out
                     break;
                 case "SIGNUP_CANDIDATE":
-                    json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
                     dataObject = jsonObject.getAsJsonObject("data");
                     nome = dataObject.get("name").getAsString();
                     email = dataObject.get("email").getAsString();
@@ -125,24 +125,24 @@ public class ClientHandler implements Runnable {
 
                     // Verifica se o email eh valido
                     if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
-                        out =  new OUT_THREE_PARAMETERS(operation, "FAILURE", null);
+                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         break;
                     }
 
                     sqlResult = DatabaseManager.readClienteCandidato(email);
 
                     // Read volta nulo se nao existir
-                    if(sqlResult == null){
-                        if (!nome.isBlank() && !email.isBlank() && !senha.isBlank()){
+                    if (sqlResult == null) {
+                        if (!nome.isBlank() && !email.isBlank() && !senha.isBlank()) {
                             // Se os campos vieram de verdade (email ja foi validado aqui
                             DatabaseManager.createClienteCandidato(nome, email, senha);
                             // Montar a mensagem de sucesso pro out
                             out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", null);
                         } else {
                             // Se algum dos campos está em branco, não é possível criar o cliente
-                            out =  new OUT_THREE_PARAMETERS(operation, "FAILURE", null);
+                            out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         }
-                    }else{
+                    } else {
                         // FIXME tratar quando o cliente ja existe
                         // Se chegou aqui, significa que o cliente já existe
                     }
@@ -150,7 +150,7 @@ public class ClientHandler implements Runnable {
                 default:
                     out = new OUT_THREE_PARAMETERS("NAO_EXISTE", null, null);
             }
-            if (json == null) throw new JsonParseException("");
+            if (jsonMessage == null) throw new JsonParseException("");
 
         } catch (Exception e) {
 //            e.printStackTrace();
