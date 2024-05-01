@@ -10,6 +10,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -35,8 +36,13 @@ public class ClientHandler implements Runnable {
     }
 
     private DecodedJWT verifyToken(String token) {
-        JWTVerifier verifier = JWT.require(algorithm).build();
-        return verifier.verify(token);
+        try {
+            JWTVerifier verifier = JWT.require(algorithm).build();
+            return verifier.verify(token);
+        } catch (JWTVerificationException e) {
+            // Se ele entrou aqui, quer dizer que o token nao eh valido
+            return null;
+        }
     }
 
     public ClientHandler(Socket socket) {
@@ -60,7 +66,7 @@ public class ClientHandler implements Runnable {
         String email = null;
         String nome = null;
         String senha = null;
-        String tempToken = null;
+        String token = null;
         String operation = null;
         // Definicao dos objetos a serem usados
         JsonObject jsonObject = null;
@@ -68,6 +74,7 @@ public class ClientHandler implements Runnable {
         Message jsonMessage = null;
         Candidato sqlResult = null;
         Map<String, String> tempData = new HashMap<>();
+        DecodedJWT decJWT = null;
 
 
         try {
@@ -90,15 +97,15 @@ public class ClientHandler implements Runnable {
                                 // Senha correta, mandar o pacote de aceitacao
                                 switch (operation) {
                                     case "LOGIN_CANDIDATE":
-                                        tempToken = genToken(sqlResult.getId(), "CANDIDATE");
+                                        token = genToken(sqlResult.getId(), "CANDIDATE");
                                         break;
                                     case "LOGIN_RECRUITER":
-                                        tempToken = genToken(sqlResult.getId(), "RECRUITER");
+                                        token = genToken(sqlResult.getId(), "RECRUITER");
                                         break;
                                     default:
                                         System.err.println("ERRO NO OPERATION\n");
                                 }
-                                tempData.put("token", tempToken);
+                                tempData.put("token", token);
                                 out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", tempData);
                             } else {
                                 // Infos incorretas, mandar o pacote de recusa
@@ -109,7 +116,7 @@ public class ClientHandler implements Runnable {
                         // TODO tratar quando o pacote vir faltando dados
                     }
 
-//                    tempToken = genToken()
+//                    token = genToken()
                     break;
                 case "LOGOUT_CANDIDATE":
                 case "LOGOUT_RECRUITER":
@@ -146,6 +153,29 @@ public class ClientHandler implements Runnable {
                         // FIXME tratar quando o cliente ja existe
                         // Se chegou aqui, significa que o cliente já existe
                     }
+                    break;
+                case "UPDATE_ACCOUNT_CANDIDATE":
+
+                    jsonMessage = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
+
+                    // Esses caras foram subidos, para que nao seja necessario colocar um if do email ali em baixo
+                    dataObject = jsonObject.getAsJsonObject("data");
+                    email = dataObject.get("email").getAsString();
+
+                    token = jsonObject.get("token").getAsString();
+                    if ((decJWT = verifyToken(token)) == null && !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+                        // Deu merda, isso aqui nao eh um token valido
+                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                    }
+                    // Os caras a serem atualizados vem por aqui
+                    nome = dataObject.get("name").getAsString();
+                    senha = dataObject.get("password").getAsString();
+
+                    // Nesse ponto, como o dataObject nao jogou nenhuma excecao, veio todos os campos
+                    // TODO VER QUEM EH O USUARIO E SE O MESMO TEM PREVILEGIO DE EDICAO DE QUALQUER PORRA
+                    // TODO Isso tem que ver com o professor provavelmente
+
+                    DatabaseManager.updateClienteCandidato(Integer.parseInt(decJWT.getClaim("id").asString()), nome, email, senha);
                     break;
                 default:
                     out = new OUT_THREE_PARAMETERS("NAO_EXISTE", null, null);
