@@ -130,9 +130,10 @@ public class ClientHandler implements Runnable {
 
                     sqlResult = DatabaseManager.readClienteCandidato(email);
 
+                    // Read volta nulo se nao existir
                     if(sqlResult == null){
                         if (!nome.isBlank() && !email.isBlank() && !senha.isBlank()){
-                            // Se os campos não estão em branco, é seguro tentar criar o cliente
+                            // Se os campos vieram de verdade (email ja foi validado aqui
                             DatabaseManager.createClienteCandidato(nome, email, senha);
                             // Montar a mensagem de sucesso pro out
                             out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", null);
