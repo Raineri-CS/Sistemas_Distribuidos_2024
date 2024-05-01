@@ -22,7 +22,20 @@ public class ClientApplication {
 
             if (socket.isConnected()) {
                 PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-                writer.println("{\"operation\":\"LOGIN_CANDIDATE\",\"data\":{\"email\":\"some1@email.com\",\"password\":\"some_password\",\"name\":\"SomeName\",\"industry\":\"SomeBranch\",\"description\":\"Somedescription\"},\"token\":\"some_token\"}");
+                // Montar a string JSON
+                String json = "{" +
+                        "\"operation\": \"SIGNUP_CANDIDATE\"," +
+                        "\"data\": {" +
+                        "\"email\": \"a@a.com\"," +
+                        "\"password\": \"12345\"," +
+                        "\"name\": \"Talita\"" +
+                        "}" +
+                        "}";
+
+                // Enviar o JSON através do PrintWriter
+                writer.println(json);
+
+//                writer.println("{\"operation\":\"LOGIN_CANDIDATE\",\"data\":{\"email\":\"some1@email.com\",\"password\":\"some_password\",\"name\":\"SomeName\",\"industry\":\"SomeBranch\",\"description\":\"Somedescription\"},\"token\":\"some_token\"}");
                 System.out.println("Mensagem enviada ao servidor");
 
                 BufferedReader buf = new BufferedReader(new InputStreamReader(socket.getInputStream()));

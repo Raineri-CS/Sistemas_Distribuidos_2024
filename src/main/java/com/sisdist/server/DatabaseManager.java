@@ -1,6 +1,5 @@
 package com.sisdist.server;
 
-import org.jetbrains.annotations.NotNull;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -46,13 +45,14 @@ public class DatabaseManager {
             if (resultSet.next()) {
                 int id = resultSet.getInt("ID");
                 String nome = resultSet.getString("Nome");
-                return new Candidato(id, nome, email);
+                String senha = resultSet.getString("Senha");
+                return new Candidato(id, nome, email, senha);
             } else {
                 System.out.println("Candidato não encontrado.");
                 return null;
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             return null;
         }
     }

@@ -3,6 +3,8 @@ package com.sisdist.server;
 import java.io.*;
 import java.net.Socket;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -32,7 +34,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private DecodedJWT verifyToken(String token){
+    private DecodedJWT verifyToken(String token) {
         JWTVerifier verifier = JWT.require(algorithm).build();
         return verifier.verify(token);
     }
@@ -52,44 +54,57 @@ public class ClientHandler implements Runnable {
 
     private void processMessage(String message) {
         Gson gson = new Gson();
-        OutMessage out = null;
+        // Definicao da mensagem que sempre vai sair
+        OUT_THREE_PARAMETERS out = null;
+        // Definicao de variaveis para ajuda na legibilidade
+        String email = null;
+        String nome = null;
+        String senha = null;
+        String tempToken = null;
+        String operation = null;
+        // Definicao dos objetos a serem usados
+        JsonObject jsonObject = null;
+        JsonObject dataObject = null;
+        Message json = null;
+        Candidato sqlResult = null;
+        Map<String, String> tempData = new HashMap<>();
+
+
         try {
-            JsonObject jsonObject = JsonParser.parseString(message).getAsJsonObject();
-            Message json = null;
-            String operation = jsonObject.get("operation").getAsString();
+            jsonObject = JsonParser.parseString(message).getAsJsonObject();
+            operation = jsonObject.get("operation").getAsString();
             switch (operation) {
                 case "LOGIN_CANDIDATE":
                 case "LOGIN_RECRUITER":
-                    String tempToken = null;
                     json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
                     // Para qualquer login, gerar o token para assinar o pacote
                     // TODO puxar o login do banco
-                    String email = jsonObject.get("email").getAsString();
-                    String senha = jsonObject.get("password").getAsString();
-                    if(!email.isEmpty() && !senha.isEmpty()){
+                    email = jsonObject.get("email").getAsString();
+                    senha = jsonObject.get("password").getAsString();
+                    if (!email.isEmpty() && !senha.isEmpty()) {
                         // Informacoes vieram no pacote
-                        Candidato sqlResult = DatabaseManager.readClienteCandidato(email);
+                        sqlResult = DatabaseManager.readClienteCandidato(email);
 
-                        if(senha.equals(sqlResult.getSenha())){
-                            // Senha correta, mandar o pacote de aceitacao
-                            switch (operation){
-                                case "LOGIN_CANDIDATE":
-                                    tempToken = genToken(sqlResult.getId(), "CANDIDATE");
-                                    break;
-                                case "LOGIN_RECRUITER":
-                                    tempToken = genToken(sqlResult.getId(), "RECRUITER");
-                                    break;
-                                default:
-                                    System.err.println("ERRO NO OPERATION\n");
+                        if (sqlResult != null) {
+                            if (senha.equals(sqlResult.getSenha())) {
+                                // Senha correta, mandar o pacote de aceitacao
+                                switch (operation) {
+                                    case "LOGIN_CANDIDATE":
+                                        tempToken = genToken(sqlResult.getId(), "CANDIDATE");
+                                        break;
+                                    case "LOGIN_RECRUITER":
+                                        tempToken = genToken(sqlResult.getId(), "RECRUITER");
+                                        break;
+                                    default:
+                                        System.err.println("ERRO NO OPERATION\n");
+                                }
+                                tempData.put("token", tempToken);
+                                out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", tempData);
+                            } else {
+                                // Senha incorreta, mandar o pacote de recusa
                             }
-                            // FIXME popular isso aqui
-                            Map<String, String> tempData = new Map<String><String>;
-                            out = new OUT_THREE_PARAMETERS(operation,"SUCCESS", new Map )
-                        }else{
-                            // Senha incorreta, mandar o pacote de recusa
                         }
-
-                    }else{
+                    } else {
                         // TODO tratar quando o pacote vir faltando dados
                     }
 
@@ -100,14 +115,44 @@ public class ClientHandler implements Runnable {
                     json = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
                     // TODO as mensagens atribuindo pra out
                     break;
+                case "SIGNUP_CANDIDATE":
+                    json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
+                    dataObject = jsonObject.getAsJsonObject("data");
+                    nome = dataObject.get("name").getAsString();
+                    email = dataObject.get("email").getAsString();
+                    senha = dataObject.get("password").getAsString();
+
+                    // Verifica se o email eh valido
+                    if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+                        out =  new OUT_THREE_PARAMETERS(operation, "FAILURE", null);
+                        break;
+                    }
+
+                    sqlResult = DatabaseManager.readClienteCandidato(email);
+
+                    if(sqlResult == null){
+                        if (!nome.isBlank() && !email.isBlank() && !senha.isBlank()){
+                            // Se os campos não estão em branco, é seguro tentar criar o cliente
+                            DatabaseManager.createClienteCandidato(nome, email, senha);
+                            // Montar a mensagem de sucesso pro out
+                            out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", null);
+                        } else {
+                            // Se algum dos campos está em branco, não é possível criar o cliente
+                            out =  new OUT_THREE_PARAMETERS(operation, "FAILURE", null);
+                        }
+                    }else{
+                        // FIXME tratar quando o cliente ja existe
+                        // Se chegou aqui, significa que o cliente já existe
+                    }
+                    break;
                 default:
-                    out = new OutMessage("NAO_EXISTE", null , null);
+                    out = new OUT_THREE_PARAMETERS("NAO_EXISTE", null, null);
             }
             if (json == null) throw new JsonParseException("");
 
         } catch (Exception e) {
 //            e.printStackTrace();
-            out = new OutMessage(null, "REJECTED", Collections.emptyMap());
+            out = new OUT_THREE_PARAMETERS(null, "REJECTED", Collections.emptyMap());
         }
 
         String outJson = gson.toJson(out);
