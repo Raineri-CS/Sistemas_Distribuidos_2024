@@ -23,14 +23,23 @@ public class ClientApplication {
             if (socket.isConnected()) {
                 PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
                 // Montar a string JSON
+//                String json = "{" +
+//                        "\"operation\": \"SIGNUP_CANDIDATE\"," +
+//                        "\"data\": {" +
+//                        "\"email\": \"a@a.com\"," +
+//                        "\"password\": \"12345\"," +
+//                        "\"name\": \"Talita\"" +
+//                        "}" +
+//                        "}";
+//
                 String json = "{" +
-                        "\"operation\": \"SIGNUP_CANDIDATE\"," +
+                        "\"operation\": \"LOGIN_CANDIDATE\"," +
                         "\"data\": {" +
                         "\"email\": \"a@a.com\"," +
-                        "\"password\": \"12345\"," +
-                        "\"name\": \"Talita\"" +
+                        "\"password\": \"12345\"" +
                         "}" +
                         "}";
+
 
                 // Enviar o JSON através do PrintWriter
                 writer.println(json);

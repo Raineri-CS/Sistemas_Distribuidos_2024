@@ -79,8 +79,9 @@ public class ClientHandler implements Runnable {
                     json = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
                     // Para qualquer login, gerar o token para assinar o pacote
                     // TODO puxar o login do banco
-                    email = jsonObject.get("email").getAsString();
-                    senha = jsonObject.get("password").getAsString();
+                    dataObject = jsonObject.get("data").getAsJsonObject();
+                    email = dataObject.get("email").getAsString();
+                    senha = dataObject.get("password").getAsString();
                     if (!email.isEmpty() && !senha.isEmpty()) {
                         // Informacoes vieram no pacote
                         sqlResult = DatabaseManager.readClienteCandidato(email);

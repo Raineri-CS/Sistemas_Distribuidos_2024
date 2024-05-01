@@ -1,11 +1,7 @@
 package com.sisdist.server;
 
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class DatabaseManager {
     // Configurações do banco de dados
@@ -16,11 +12,20 @@ public class DatabaseManager {
     public DatabaseManager(){}
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
+
+        // Selecionar o banco de dados desejado
+        String selectDB = "USE service";
+        try (Statement selectStatement = connection.createStatement()) {
+            selectStatement.execute(selectDB);
+        }
+
+        return connection;
     }
 
+
     public static void createClienteCandidato(String nome, String email, String senha) {
-        String sql = "INSERT INTO Cliente_candidato (Nome, Email, Senha) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO Cliente_Candidato (Nome, Email, Senha) VALUES (?, ?, ?)";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -35,7 +40,7 @@ public class DatabaseManager {
     }
 
     public static Candidato readClienteCandidato(String email) {
-        String sql = "SELECT * FROM Cliente_candidato WHERE Email = ?";
+        String sql = "SELECT * FROM Cliente_Candidato WHERE Email = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -58,7 +63,7 @@ public class DatabaseManager {
     }
 
     public static void updateClienteCandidato(int id, String novoNome, String novoEmail, String novaSenha) {
-        String sql = "UPDATE Cliente_candidato SET Nome = ?, Email = ?, Senha = ? WHERE ID = ?";
+        String sql = "UPDATE Cliente_Candidato SET Nome = ?, Email = ?, Senha = ? WHERE ID = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -74,7 +79,7 @@ public class DatabaseManager {
     }
 
     public static void deleteClienteCandidato(int id) {
-        String sql = "DELETE FROM Cliente_candidato WHERE ID = ?";
+        String sql = "DELETE FROM Cliente_Candidato WHERE ID = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
