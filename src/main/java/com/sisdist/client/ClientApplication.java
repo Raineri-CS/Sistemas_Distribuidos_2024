@@ -15,7 +15,6 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
@@ -29,7 +28,6 @@ public class ClientApplication {
 
     private Message msg;
     private JsonObject jsonObject;
-    private Map<String, String> tempData = new HashMap<>();
 
     // FIXME tirar isso quando a UI ficar pronta
     private BufferedReader reader;
@@ -342,7 +340,7 @@ public class ClientApplication {
             throw new RuntimeException(e);
         }
 
-        tempData = Map.of("email", email, "password", senha);
+        Map<String, String> tempData = Map.of("email", email, "password", senha);
 
         msg = new MESSAGE_TWO_PARAMETERS("LOGIN_CANDIDATE", tempData);
         String outMsg = gson.toJson(msg);

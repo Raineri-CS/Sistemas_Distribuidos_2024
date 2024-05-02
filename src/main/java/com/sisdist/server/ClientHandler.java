@@ -62,6 +62,7 @@ public class ClientHandler implements Runnable {
                 readMessages(buf);
             }else{
                 // Bom, o cliente fechou a socket, logo, pode-se sair seguramente
+                // TODO =)
 
             }
         } catch (IOException e) {
@@ -75,18 +76,18 @@ public class ClientHandler implements Runnable {
         // Definicao da mensagem que sempre vai sair
         MESSAGE_THREE_PARAMETERS out = null;
         // Definicao de variaveis para ajuda na legibilidade
-        String email = null;
-        String nome = null;
-        String senha = null;
+        String email;
+        String nome;
+        String senha;
         String token = null;
-        String operation = null;
+        String operation;
         // Definicao dos objetos a serem usados
-        JsonObject jsonObject = null;
-        JsonObject dataObject = null;
+        JsonObject jsonObject;
+        JsonObject dataObject;
         Message jsonMessage = null;
-        Candidato sqlResult = null;
+        Candidato sqlResult;
         Map<String, String> tempData = new HashMap<>();
-        DecodedJWT decJWT = null;
+        DecodedJWT decJWT;
 
 
         try {
@@ -115,7 +116,6 @@ public class ClientHandler implements Runnable {
                                         token = genToken(sqlResult.getId(), "RECRUITER");
                                         break;
                                     default:
-                                        System.err.println("ERRO NO OPERATION\n");
                                 }
                                 tempData.put("token", token);
                                 out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", tempData);
