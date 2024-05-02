@@ -166,8 +166,30 @@ public class ClientHandler implements Runnable {
                         // Se chegou aqui, significa que o cliente já existe
                     }
                     break;
-                case "UPDATE_ACCOUNT_CANDIDATE":
+                case "LOOKUP_ACCOUNT_CANDIDATE":
+                    // FIXME usar o gson.fromJson eh uma boa ideia no papel, mas eu to lendo os campos direto do jsonObject, talves pipocar tudo? @joaokrejci
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
+                    // NOTE lembrar que esse email eh o email que o dono do token quer consultar
+                    email = jsonObject.get("email").getAsString();
+                    token = jsonObject.get("token").getAsString();
+                    if ((decJWT = verifyToken(token)) == null) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        break;
+                    }
+                    sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
 
+                    if(sqlResult == null){
+                        // FIXME QUE ODIO, OS MLK ESQUECERAM DESSE CASO
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "USER_NOT_FOUND", null);
+                    }else{
+                        // Reutilizando o pointer de dataObject que nao eh nem usado nessa thread se cair nesse caso mesmo
+                        tempData = Map.of("email", sqlResult.getEmail(),"name", sqlResult.getNome(),"password",sqlResult.getSenha());
+                        out = new MESSAGE_THREE_PARAMETERS(operation,"SUCCESS",tempData);
+                    }
+
+
+                    break;
+                case "UPDATE_ACCOUNT_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
 
                     // Esses caras foram subidos, para que nao seja necessario colocar um if do email ali em baixo
@@ -178,6 +200,7 @@ public class ClientHandler implements Runnable {
                     // FIXME porra caralho buceta os dois documentos falam coisas diferentes
                     if ((decJWT = verifyToken(token)) == null && !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
                         // Deu merda, isso aqui nao eh um token valido
+                        // FIXME tem inconsistencias nos documentos, confirmar se vai voltar INVALID_FIELD pra todo erro ou se o erro do token vai mesmo voltar INVALID_TOKEN
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         break;
                     }
@@ -208,10 +231,10 @@ public class ClientHandler implements Runnable {
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
 
                     token = jsonObject.get("token").getAsString();
-                    dataObject = jsonObject.getAsJsonObject("data");
+//                    dataObject = jsonObject.getAsJsonObject("data");
 
                     if ((decJWT = verifyToken(token)) == null) {
-                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_TOKEN", null);
                         break;
                     }
 

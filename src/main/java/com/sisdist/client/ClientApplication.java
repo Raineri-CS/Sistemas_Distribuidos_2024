@@ -91,11 +91,10 @@ public class ClientApplication {
     private void printMenu() {
         System.out.println("Escolha uma das opções abaixo:");
         System.out.println("1 - Cadastrar \"Cliente_Candidato\" (C)");
-        System.out.println("2 - Ler um \"Cliente_Candidato\" (R)");
-        System.out.println("3 - Atualizar um \"Cliente_Candidato\" (U)");
-        System.out.println("4 - Deletar um \"Cliente_Candidato\" (D)");
-
         if (!token.isBlank()) {
+            System.out.println("2 - Ler um \"Cliente_Candidato\" (R)");
+            System.out.println("3 - Atualizar um \"Cliente_Candidato\" (U)");
+            System.out.println("4 - Deletar um \"Cliente_Candidato\" (D)");
             System.out.println("5 - Logout da conta \"Cliente_Candidato\" (Logout)");
         } else {
             System.out.println("5 - Logar em uma conta \"Cliente_Candidato\" (Login)");
