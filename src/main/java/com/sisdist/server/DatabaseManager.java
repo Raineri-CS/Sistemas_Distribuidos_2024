@@ -33,7 +33,6 @@ public class DatabaseManager {
             statement.setString(2, email);
             statement.setString(3, senha);
             statement.executeUpdate();
-            System.out.println("Candidato criado com sucesso!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -53,7 +52,6 @@ public class DatabaseManager {
                 String email = resultSet.getString("Email");
                 return new Candidato(id, nome, email, senha);
             } else {
-                System.out.println("Candidato não encontrado.");
                 return null;
             }
         } catch (SQLException e) {
@@ -76,7 +74,6 @@ public class DatabaseManager {
                 String senha = resultSet.getString("Senha");
                 return new Candidato(id, nome, email, senha);
             } else {
-                System.out.println("Candidato não encontrado.");
                 return null;
             }
         } catch (SQLException e) {
@@ -99,7 +96,6 @@ public class DatabaseManager {
             statement.setString(3, novaSenha);
             statement.setInt(4, id);
             statement.executeUpdate();
-            System.out.println("Candidato atualizado com sucesso!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -112,7 +108,6 @@ public class DatabaseManager {
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, id);
             statement.executeUpdate();
-            System.out.println("Candidato deletado com sucesso!");
         } catch (SQLException e) {
             e.printStackTrace();
         }
