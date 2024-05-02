@@ -195,7 +195,7 @@ public class ClientApplication {
         if (!response.isBlank()) {
             jsonObject = JsonParser.parseString(response).getAsJsonObject();
             JsonObject tempData = jsonObject.get("data").getAsJsonObject();
-            switch(jsonObject.get("status").getAsString()){
+            switch (jsonObject.get("status").getAsString()) {
                 case "SUCCESS":
                     // Tudo certo, dale
                     System.out.println("----------------------");
@@ -256,7 +256,7 @@ public class ClientApplication {
             return;
         }
         Map<String, String> data = Map.of("name", nome, "email", email, "password", senha);
-        msg = new MESSAGE_THREE_PARAMETERS_WITH_TOKEN("UPDATE_ACCOUNT_CANDIDATE",this.token , data);
+        msg = new MESSAGE_THREE_PARAMETERS_WITH_TOKEN("UPDATE_ACCOUNT_CANDIDATE", this.token, data);
 
         String outMsg = gson.toJson(msg);
 
@@ -307,7 +307,7 @@ public class ClientApplication {
 
         if (!response.isBlank()) {
             jsonObject = JsonParser.parseString(response).getAsJsonObject();
-            switch(jsonObject.get("status").getAsString()){
+            switch (jsonObject.get("status").getAsString()) {
                 case "SUCCESS":
                     // Tudo certo, dale
                     System.out.println("----------------------");
@@ -352,7 +352,7 @@ public class ClientApplication {
             jsonObject = JsonParser.parseString(response).getAsJsonObject();
             String result = jsonObject.get("status").getAsString();
 
-            switch(result){
+            switch (result) {
                 case "SUCCESS":
                     //Tudo certo, settar o token vindo do server
                     JsonObject dataObj = jsonObject.get("data").getAsJsonObject();
@@ -410,30 +410,3 @@ public class ClientApplication {
     }
 
 }
-
-/*
-         try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(IP, PORT));
-
-            if (socket.isConnected()) {
-                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-
-                // Enviar o JSON através do PrintWriter
-                writer.println(json);
-
-//                writer.println("{\"operation\":\"LOGIN_CANDIDATE\",\"data\":{\"email\":\"some1@email.com\",\"password\":\"some_password\",\"name\":\"SomeName\",\"industry\":\"SomeBranch\",\"description\":\"Somedescription\"},\"token\":\"some_token\"}");
-                System.out.println("Mensagem enviada ao servidor");
-
-                BufferedReader buf = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-                String line;
-                while ((line = buf.readLine()) != null) {
-                    System.out.println("Mensagem do servidor: " + line);
-                }
-            } else {
-                System.err.println("Não foi possível conectar ao servidor.");
-            }
-        } catch (IOException e) {
-            System.err.println("Erro ao tentar criar a socket " + e.getMessage());
-        }
- */
