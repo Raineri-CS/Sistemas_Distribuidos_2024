@@ -1,10 +1,10 @@
 package com.sisdist.server;
 
 public class Candidato {
-    private int id;
-    private String nome;
-    private String email;
-    private String senha;
+    private final int id;
+    private final String nome;
+    private final String email;
+    private final String senha;
 
     public Candidato(int id, String nome, String email, String senha) {
         this.id = id;
