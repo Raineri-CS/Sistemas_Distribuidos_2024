@@ -1,27 +1,0 @@
-
-s
-java:S1135	"2Complete the task associated to this TODO comment.(ğßªŒüÿÿÿÿJ$cb0ba295-f295-4f40-a883-d50c6b0cb6cf
-“
-java:S3776"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(·ç¤ÿÿÿÿÿÿJ$a6a2090f-ded6-43f8-a996-2d3d8b207ca5
-e	java:S106"+Replace this use of System.out by a logger.(Ù„Ñ;J$5954d93c-e90b-45c7-bd02-fe77de130457
-k	java:S106"+Replace this use of System.out by a logger.(¸ÈÁşÿÿÿÿJ$10096a5b-dd1d-4bfd-985f-b643e29dfee5
-f	java:S106/"+Replace this use of System.out by a logger.(”œÖ×J$032c9db2-298e-410e-9bbc-09382fb2435e
-…
-java:S11344"DTake the required action to fix the issue indicated by this comment.(ÅüÕşÿÿÿÿJ$5c3c5a0d-aaaf-436b-ae59-d98fa81e224f
-j
-java:S14816")Remove this unused "sock" local variable.(“Ÿ´ÇşÿÿÿÿJ$e62360b8-0198-4a2d-a091-b1dd1af5fc0e
-…
-java:S11348"DTake the required action to fix the issue indicated by this comment.(ÃƒóšşÿÿÿÿJ$11da5640-c855-4172-8968-da196ff50933
-s
-java:S11359"2Complete the task associated to this TODO comment.(›Çì£üÿÿÿÿJ$0c12bcda-e228-4f1c-93a9-03413f59f2b6
-…
-java:S1134@"DTake the required action to fix the issue indicated by this comment.(·³¤†üÿÿÿÿJ$4ce7663d-54ae-43f4-a8b5-971dc8fae373
-k	java:S106D"+Replace this use of System.out by a logger.(Ê©–ıÿÿÿÿJ$a8ef993f-23ed-4297-adb8-82cec2e546f8
-l
-java:S1128"0Remove this unused import 'java.util.ArrayList'.(÷‰îƒJ$573fd556-a2f6-448e-925d-95cb764f420d
-m
-java:S1128",Remove this unused import 'java.util.Timer'.(†£ñáÿÿÿÿÿJ$be703e83-e4c4-4993-89e8-cb0dca0cc9a2
-m
-java:S1068",Remove this unused "inStream" private field.(è÷±ƒıÿÿÿÿJ$b4cf5020-1631-43f0-9261-5de1fb89f45d
-i
-java:S1068"-Remove this unused "outStream" private field.(¸ÉéÚJ$909c1d9c-01a8-4e73-a5ed-e18d7cc6d25d
