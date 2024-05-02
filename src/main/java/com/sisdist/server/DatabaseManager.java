@@ -82,12 +82,13 @@ public class DatabaseManager {
         }
     }
 
-    public static void updateClienteCandidato(int id, String novoNome, String novoEmail, String novaSenha) {
-        if(id < 1){
-            // Sim, vou jogar exception ate aqui
-            throw new IllegalArgumentException();
+    public static int updateClienteCandidato(int id, String novoNome, String novoEmail, String novaSenha) {
+        if (id < 1) {
+            throw new IllegalArgumentException("ID must be greater than 0");
         }
+
         String sql = "UPDATE Cliente_Candidato SET Nome = ?, Email = ?, Senha = ? WHERE ID = ?";
+        int rowsAffected = 0;
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -95,10 +96,12 @@ public class DatabaseManager {
             statement.setString(2, novoEmail);
             statement.setString(3, novaSenha);
             statement.setInt(4, id);
-            statement.executeUpdate();
+            rowsAffected = statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        return rowsAffected;
     }
 
     public static void deleteClienteCandidato(int id) {
