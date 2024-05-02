@@ -53,4 +53,5 @@ task runServer(type: JavaExec) {
 task runClient(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'com.sisdist.client.Client'
+    standardInput = System.in
     }
