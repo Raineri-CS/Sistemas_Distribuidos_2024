@@ -10,10 +10,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.sisdist.server.messages.IN_THREE_PARAMETERS;
-import com.sisdist.server.messages.IN_TWO_PARAMETERS;
-import com.sisdist.server.messages.Message;
-import com.sisdist.server.messages.OUT_THREE_PARAMETERS;
+import com.sisdist.common.messages.IN_THREE_PARAMETERS;
+import com.sisdist.common.messages.IN_TWO_PARAMETERS;
+import com.sisdist.common.messages.Message;
+import com.sisdist.common.messages.OUT_THREE_PARAMETERS;
 
 import java.io.BufferedReader;
 import java.io.IOException;
