@@ -31,7 +31,7 @@ public class ClientHandler implements Runnable {
 
     private final Algorithm algorithm = Algorithm.HMAC256(magicWord);
 
-    private static final Logger logger = Logger.getLogger((ClientHandler.class).toString());
+    private static final Logger LOGGER = Logger.getLogger((ClientHandler.class).toString());
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -70,7 +70,7 @@ public class ClientHandler implements Runnable {
     }
 
     private void processMessage(String message) {
-        logger.info("Arrived at processMessage with client " + clientSocket.getInetAddress() + " message: " + message);
+        LOGGER.info("Arrived at processMessage with client " + clientSocket.getInetAddress() + " message: " + message);
         Gson gson = new Gson();
         // Definicao da mensagem que sempre vai sair
         MESSAGE_THREE_PARAMETERS out = null;
@@ -198,6 +198,8 @@ public class ClientHandler implements Runnable {
 
                     break;
                 case "UPDATE_ACCOUNT_CANDIDATE":
+                    // TODO check ALL fields that come in on ALL operations pls =)
+                    // TODO if to be updated email is the same as the one in the database and decJWT id == Database ID, allow update
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
 
                     // Esses caras foram subidos, para que nao seja necessario colocar um if do email ali em baixo
@@ -223,15 +225,22 @@ public class ClientHandler implements Runnable {
                     // NOTE sim, isso eh HORRIVEL, mas o intellij ficava me ENCHENDO O SACO de getClaim poder soltar um nullpointerexception
                     Integer tempInt = null;
                     if (decJWT != null) {
-                        tempInt = decJWT.getClaim("id").asInt();
+                        tempInt = Integer.parseInt(decJWT.getClaim("id").asString());
                     }
-                    sqlResult = DatabaseManager.readClienteCandidato(tempInt != null ? tempInt : -1);
-                    if (sqlResult != null) {
+                    sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+                    // TODO esse tempInt ai, que pode virar nullpointerexception, to com preguica agora
+                    if ((sqlResult != null) && sqlResult.getId() != tempInt) {
                         // Fodeu, quer dizer que encontrou um usuario com esse email que eu quero colocar (email eh um valor unico no banco)
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_EMAIL", Collections.emptyMap());
                     } else {
                         // Po, os dados tao certos, decJWT veio sem ser nulo, e o email que eu quero colocar nesse novo user nao esta sendo utilizado, entao manda bala
-                        DatabaseManager.updateClienteCandidato(tempInt != null ? tempInt : -1, nome, email, senha);
+                        if (DatabaseManager.updateClienteCandidato(tempInt != null ? tempInt : -1, nome, email, senha) < 3){
+                            // Quer dizer que nao atualizou as 3 propriedades, o divertido eh que a query nao te fala qual, boa sorte =)
+                            // Certo, em cima eu checo se tem algum email conflitante, entao se esse numero for menor que 3, quer dizer que
+                            // ou o nome, ou a senha nao foram alterados, o que, no grande esquema do problema, grande foda-se
+                            // TODO procurar um jeito de fazer isso sem ter que re consultar o bd
+                            LOGGER.warning("Either the password or the name are the same and thus they weren't updated");
+                        }
                         out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     }
                     break;
@@ -261,7 +270,7 @@ public class ClientHandler implements Runnable {
         }
 
         String outJson = gson.toJson(out);
-        logger.info("Sending to " + clientSocket.getInetAddress().toString() + " the message: " + outJson);
+        LOGGER.info("Sending to " + clientSocket.getInetAddress().toString() + " the message: " + outJson);
         try {
 //            BufferedWriter writer = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream() ) );
             PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());

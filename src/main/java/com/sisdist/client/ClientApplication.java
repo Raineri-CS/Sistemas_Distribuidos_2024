@@ -71,11 +71,11 @@ public class ClientApplication {
                     else System.out.println("Opção inválida. Por favor, escolha uma opção válida.");
                     break;
                 case 3:
-                    if (!token.isBlank()) atualizarCliente();
+                    if (!token.isBlank()) atualizarClienteCandidato();
                     else System.out.println("Opção inválida. Por favor, escolha uma opção válida.");
                     break;
                 case 4:
-                    if (!token.isBlank()) deletarCliente();
+                    if (!token.isBlank()) deletarClienteCandidato();
                     else System.out.println("Opção inválida. Por favor, escolha uma opção válida.");
                     break;
                 case 5:
@@ -222,12 +222,80 @@ public class ClientApplication {
         }
     }
 
+    private void atualizarClienteCandidato() {
+        Gson gson = new Gson();
+        String nome, email, senha;
+        System.out.println("[UPDATE]");
+        System.out.println("Confirme com enter");
+        System.out.println("Novo nome ");
 
-    private void atualizarCliente() {
-        // Lógica para atualizar um cliente
+        try {
+            nome = reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("Novo email");
+        try {
+            email = reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        System.out.println("Nova senha");
+        try {
+            senha = reader.readLine();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        if (senha.isBlank() || email.isBlank() || nome.isBlank()) {
+            System.out.println("Os dados foram informados incorretamente, aperte enter para voltar para o menu principal");
+            try {
+                reader.readLine();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            return;
+        }
+        Map<String, String> data = Map.of("name", nome, "email", email, "password", senha);
+        msg = new MESSAGE_THREE_PARAMETERS_WITH_TOKEN("UPDATE_ACCOUNT_CANDIDATE",this.token , data);
+
+        String outMsg = gson.toJson(msg);
+
+
+        String response = sendMsg(outMsg);
+
+        jsonObject = JsonParser.parseString(response).getAsJsonObject();
+        String result = jsonObject.get("status").getAsString();
+        if (!result.isBlank()) {
+            switch (result) {
+                case "SUCCESS":
+                    // Tudo certo
+                    System.out.println("Candidato atualizado com sucesso!");
+                    return;
+                case "INVALID_EMAIL":
+                case "INVALID_FIELD":
+                    System.out.println("Email inválido, isso pode ocorrer se o email estiver mal formatado ou se já estiver registrado.");
+                    System.out.println("(pressione enter para continuar)");
+                    try {
+                        reader.readLine();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return;
+                case "REJECTED":
+                    // NOTE isso nao esta na spec da turma, eh pra teste meu
+                    LOGGER.severe("UEPA, ERROU AI FOI? NUM CONXEGUE");
+                    return;
+                default:
+                    // Putz, dai o server errou
+                    LOGGER.severe("Server sent malformed message, check logs to learn more.");
+            }
+        } else {
+            // Just... how did you arrive here?
+            LOGGER.severe("This piece of code should NEVER be executed @cadastrarClienteCandidato");
+        }
     }
 
-    private void deletarCliente() {
+    private void deletarClienteCandidato() {
         // Thats stupid but the docs say for you to pass the jwt token as a param, that means you have to delete yourself
         // NOTE sudoku
         Gson gson = new Gson();
