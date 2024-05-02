@@ -10,10 +10,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.sisdist.common.messages.IN_THREE_PARAMETERS;
-import com.sisdist.common.messages.IN_TWO_PARAMETERS;
+import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS_WITH_TOKEN;
+import com.sisdist.common.messages.MESSAGE_TWO_PARAMETERS;
 import com.sisdist.common.messages.Message;
-import com.sisdist.common.messages.OUT_THREE_PARAMETERS;
+import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,12 +23,15 @@ import java.net.Socket;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final String magicWord = "DISTRIBUIDOS";
 
     private final Algorithm algorithm = Algorithm.HMAC256(magicWord);
+
+    private static final Logger logger = Logger.getLogger((ClientHandler.class).toString());
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -54,17 +57,23 @@ public class ClientHandler implements Runnable {
 
     public void read() {
         try {
-            BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
-            readMessages(buf);
+            if (!clientSocket.isClosed()){
+                BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
+                readMessages(buf);
+            }else{
+                // Bom, o cliente fechou a socket, logo, pode-se sair seguramente
+
+            }
         } catch (IOException e) {
             System.err.println("Error in ClientHandler read()" + e);
         }
     }
 
     private void processMessage(String message) {
+        logger.info("Arrived at processMessage with client " + clientSocket.getInetAddress() + " message: " + message);
         Gson gson = new Gson();
         // Definicao da mensagem que sempre vai sair
-        OUT_THREE_PARAMETERS out = null;
+        MESSAGE_THREE_PARAMETERS out = null;
         // Definicao de variaveis para ajuda na legibilidade
         String email = null;
         String nome = null;
@@ -86,7 +95,7 @@ public class ClientHandler implements Runnable {
             switch (operation) {
                 case "LOGIN_CANDIDATE":
                 case "LOGIN_RECRUITER":
-                    jsonMessage = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
                     // Para qualquer login, gerar o token para assinar o pacote
                     dataObject = jsonObject.get("data").getAsJsonObject();
                     email = dataObject.get("email").getAsString();
@@ -109,10 +118,10 @@ public class ClientHandler implements Runnable {
                                         System.err.println("ERRO NO OPERATION\n");
                                 }
                                 tempData.put("token", token);
-                                out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", tempData);
+                                out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", tempData);
                             } else {
                                 // Infos incorretas, mandar o pacote de recusa
-                                out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                                out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                             }
                         }
                     } else {
@@ -123,11 +132,11 @@ public class ClientHandler implements Runnable {
                     break;
                 case "LOGOUT_CANDIDATE":
                 case "LOGOUT_RECRUITER":
-                    jsonMessage = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
                     // TODO as mensagens atribuindo pra out
                     break;
                 case "SIGNUP_CANDIDATE":
-                    jsonMessage = gson.fromJson(jsonObject, IN_TWO_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
                     dataObject = jsonObject.getAsJsonObject("data");
                     nome = dataObject.get("name").getAsString();
                     email = dataObject.get("email").getAsString();
@@ -135,7 +144,7 @@ public class ClientHandler implements Runnable {
 
                     // Verifica se o email eh valido
                     if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
-                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         break;
                     }
 
@@ -147,10 +156,10 @@ public class ClientHandler implements Runnable {
                             // Se os campos vieram de verdade (email ja foi validado aqui
                             DatabaseManager.createClienteCandidato(nome, email, senha);
                             // Montar a mensagem de sucesso pro out
-                            out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", null);
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", null);
                         } else {
                             // Se algum dos campos está em branco, não é possível criar o cliente
-                            out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         }
                     } else {
                         // FIXME tratar quando o cliente ja existe
@@ -159,7 +168,7 @@ public class ClientHandler implements Runnable {
                     break;
                 case "UPDATE_ACCOUNT_CANDIDATE":
 
-                    jsonMessage = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
 
                     // Esses caras foram subidos, para que nao seja necessario colocar um if do email ali em baixo
                     dataObject = jsonObject.getAsJsonObject("data");
@@ -169,7 +178,7 @@ public class ClientHandler implements Runnable {
                     // FIXME porra caralho buceta os dois documentos falam coisas diferentes
                     if ((decJWT = verifyToken(token)) == null && !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
                         // Deu merda, isso aqui nao eh um token valido
-                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         break;
                     }
                     // Os caras a serem atualizados vem por aqui
@@ -188,42 +197,42 @@ public class ClientHandler implements Runnable {
                     sqlResult = DatabaseManager.readClienteCandidato(tempInt != null ? tempInt : -1);
                     if (sqlResult != null) {
                         // Fodeu, quer dizer que encontrou um usuario com esse email que eu quero colocar (email eh um valor unico no banco)
-                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_EMAIL", null);
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_EMAIL", null);
                     } else {
                         // Po, os dados tao certos, decJWT veio sem ser nulo, e o email que eu quero colocar nesse novo user nao esta sendo utilizado, entao manda bala
                         DatabaseManager.updateClienteCandidato(tempInt != null ? tempInt : -1, nome, email, senha);
-                        out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", null);
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", null);
                     }
                     break;
                 case "DELETE_ACCOUNT_CANDIDATE":
-                    jsonMessage = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
 
                     token = jsonObject.get("token").getAsString();
                     dataObject = jsonObject.getAsJsonObject("data");
 
                     if ((decJWT = verifyToken(token)) == null) {
-                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
                         break;
                     }
 
                     DatabaseManager.deleteClienteCandidato(decJWT.getClaim("id").asInt());
                     break;
                 default:
-                    out = new OUT_THREE_PARAMETERS("NAO_EXISTE", null, null);
+                    out = new MESSAGE_THREE_PARAMETERS("NAO_EXISTE", null, null);
             }
             if (jsonMessage == null) throw new JsonParseException("");
 
         } catch (Exception e) {
 //            e.printStackTrace();
-            out = new OUT_THREE_PARAMETERS(null, "REJECTED", Collections.emptyMap());
+            out = new MESSAGE_THREE_PARAMETERS(null, "REJECTED", Collections.emptyMap());
         }
 
         String outJson = gson.toJson(out);
-
+        logger.info("Sending to " + clientSocket.getInetAddress().toString() + " the message: " + outJson);
         try {
 //            BufferedWriter writer = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream() ) );
             PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-            writer.println(outJson);
+            writer.println((outJson.strip()));
             writer.flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -231,14 +240,6 @@ public class ClientHandler implements Runnable {
     }
 
     private void readMessages(BufferedReader buf) throws IOException {
-//        StringBuilder message = new StringBuilder();
-//        int c;
-//        while ((c = buf.read()) != -1) {
-//            if(c == '\0')
-//                break;
-//            message.append((char) c);
-//        }
-//        message.append("\n");
         processMessage(buf.readLine());
     }
 
@@ -248,8 +249,14 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        read();
+        try{
+            if(!Thread.currentThread().isInterrupted()){
+                read();
+            }else{
+                throw new InterruptedException();
+            }
+        }catch (InterruptedException e){
+            // TODO decidir o que eu vou fazer aqui
+        }
     }
-
-
 }
