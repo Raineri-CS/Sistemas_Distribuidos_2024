@@ -11,11 +11,7 @@ org-junit-jupiter-junit-jupiter-api = "5.10.0"
 org-junit-jupiter-junit-jupiter-engine = "5.10.0"
 org-kordamp-bootstrapfx-bootstrapfx-core = "0.4.0"
 org-kordamp-ikonli-ikonli-javafx = "12.3.1"
-org-openjfx-javafx-controls = "21"
-org-openjfx-javafx-fxml = "21"
-org-openjfx-javafx-media = "21"
-org-openjfx-javafx-swing = "21"
-org-openjfx-javafx-web = "21"
+
 
 [libraries]
 com-dlsc-formsfx-formsfx-core = { module = "com.dlsc.formsfx:formsfx-core", version.ref = "com-dlsc-formsfx-formsfx-core" }
@@ -27,8 +23,3 @@ org-junit-jupiter-junit-jupiter-api = { module = "org.junit.jupiter:junit-jupite
 org-junit-jupiter-junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "org-junit-jupiter-junit-jupiter-engine" }
 org-kordamp-bootstrapfx-bootstrapfx-core = { module = "org.kordamp.bootstrapfx:bootstrapfx-core", version.ref = "org-kordamp-bootstrapfx-bootstrapfx-core" }
 org-kordamp-ikonli-ikonli-javafx = { module = "org.kordamp.ikonli:ikonli-javafx", version.ref = "org-kordamp-ikonli-ikonli-javafx" }
-org-openjfx-javafx-controls = { module = "org.openjfx:javafx-controls", version.ref = "org-openjfx-javafx-controls" }
-org-openjfx-javafx-fxml = { module = "org.openjfx:javafx-fxml", version.ref = "org-openjfx-javafx-fxml" }
-org-openjfx-javafx-media = { module = "org.openjfx:javafx-media", version.ref = "org-openjfx-javafx-media" }
-org-openjfx-javafx-swing = { module = "org.openjfx:javafx-swing", version.ref = "org-openjfx-javafx-swing" }
-org-openjfx-javafx-web = { module = "org.openjfx:javafx-web", version.ref = "org-openjfx-javafx-web" }
