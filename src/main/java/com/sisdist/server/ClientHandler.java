@@ -1,11 +1,5 @@
 package com.sisdist.server;
 
-import java.io.*;
-import java.net.Socket;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -21,11 +15,24 @@ import com.sisdist.server.messages.IN_TWO_PARAMETERS;
 import com.sisdist.server.messages.Message;
 import com.sisdist.server.messages.OUT_THREE_PARAMETERS;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final String magicWord = "DISTRIBUIDOS";
 
-    private Algorithm algorithm = Algorithm.HMAC256(magicWord);
+    private final Algorithm algorithm = Algorithm.HMAC256(magicWord);
+
+    public ClientHandler(Socket socket) {
+        this.clientSocket = socket;
+    }
 
     private String genToken(int id, String role) throws JWTCreationException {
         try {
@@ -43,10 +50,6 @@ public class ClientHandler implements Runnable {
             // Se ele entrou aqui, quer dizer que o token nao eh valido
             return null;
         }
-    }
-
-    public ClientHandler(Socket socket) {
-        this.clientSocket = socket;
     }
 
     public void read() {
@@ -90,7 +93,7 @@ public class ClientHandler implements Runnable {
                     senha = dataObject.get("password").getAsString();
                     if (!email.isEmpty() && !senha.isEmpty()) {
                         // Informacoes vieram no pacote
-                        sqlResult = DatabaseManager.readClienteCandidato(email);
+                        sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
 
                         if (sqlResult != null) {
                             if (senha.equals(sqlResult.getSenha())) {
@@ -136,7 +139,7 @@ public class ClientHandler implements Runnable {
                         break;
                     }
 
-                    sqlResult = DatabaseManager.readClienteCandidato(email);
+                    sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
 
                     // Read volta nulo se nao existir
                     if (sqlResult == null) {
@@ -161,11 +164,13 @@ public class ClientHandler implements Runnable {
                     // Esses caras foram subidos, para que nao seja necessario colocar um if do email ali em baixo
                     dataObject = jsonObject.getAsJsonObject("data");
                     email = dataObject.get("email").getAsString();
-
                     token = jsonObject.get("token").getAsString();
+
+                    // FIXME porra caralho buceta os dois documentos falam coisas diferentes
                     if ((decJWT = verifyToken(token)) == null && !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
                         // Deu merda, isso aqui nao eh um token valido
                         out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        break;
                     }
                     // Os caras a serem atualizados vem por aqui
                     nome = dataObject.get("name").getAsString();
@@ -175,7 +180,33 @@ public class ClientHandler implements Runnable {
                     // TODO VER QUEM EH O USUARIO E SE O MESMO TEM PREVILEGIO DE EDICAO DE QUALQUER PORRA
                     // TODO Isso tem que ver com o professor provavelmente
 
-                    DatabaseManager.updateClienteCandidato(Integer.parseInt(decJWT.getClaim("id").asString()), nome, email, senha);
+                    // NOTE sim, isso eh HORRIVEL, mas o intellij ficava me ENCHENDO O SACO de getClaim poder soltar um nullpointerexception
+                    Integer tempInt = null;
+                    if (decJWT != null) {
+                        tempInt = decJWT.getClaim("id").asInt();
+                    }
+                    sqlResult = DatabaseManager.readClienteCandidato(tempInt != null ? tempInt : -1);
+                    if (sqlResult != null) {
+                        // Fodeu, quer dizer que encontrou um usuario com esse email que eu quero colocar (email eh um valor unico no banco)
+                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_EMAIL", null);
+                    } else {
+                        // Po, os dados tao certos, decJWT veio sem ser nulo, e o email que eu quero colocar nesse novo user nao esta sendo utilizado, entao manda bala
+                        DatabaseManager.updateClienteCandidato(tempInt != null ? tempInt : -1, nome, email, senha);
+                        out = new OUT_THREE_PARAMETERS(operation, "SUCCESS", null);
+                    }
+                    break;
+                case "DELETE_ACCOUNT_CANDIDATE":
+                    jsonMessage = gson.fromJson(jsonObject, IN_THREE_PARAMETERS.class);
+
+                    token = jsonObject.get("token").getAsString();
+                    dataObject = jsonObject.getAsJsonObject("data");
+
+                    if ((decJWT = verifyToken(token)) == null) {
+                        out = new OUT_THREE_PARAMETERS(operation, "INVALID_FIELD", null);
+                        break;
+                    }
+
+                    DatabaseManager.deleteClienteCandidato(decJWT.getClaim("id").asInt());
                     break;
                 default:
                     out = new OUT_THREE_PARAMETERS("NAO_EXISTE", null, null);
