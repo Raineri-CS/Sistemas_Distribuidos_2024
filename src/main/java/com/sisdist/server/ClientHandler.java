@@ -15,11 +15,9 @@ import com.sisdist.common.messages.MESSAGE_TWO_PARAMETERS;
 import com.sisdist.common.messages.Message;
 import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,8 +63,10 @@ public class ClientHandler implements Runnable {
                 // TODO =)
 
             }
+        }catch (SocketException se){
+            LOGGER.severe("Error in ClientHandler read()" + se);
         } catch (IOException e) {
-            System.err.println("Error in ClientHandler read()" + e);
+            LOGGER.severe("Error in ClientHandler read()" + e);
         }
     }
 
@@ -270,19 +270,29 @@ public class ClientHandler implements Runnable {
         }
 
         String outJson = gson.toJson(out);
-        LOGGER.info("Sending to " + clientSocket.getInetAddress().toString() + " the message: " + outJson);
+//        outJson = outJson.concat("\n");
         try {
 //            BufferedWriter writer = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream() ) );
-            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
-            writer.println((outJson.strip()));
-            writer.flush();
+            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(),true);
+            writer.println(outJson);
+//            writer.write((outJson));
+//            writer.flush();
+            LOGGER.info("Sending to " + clientSocket.getInetAddress().toString() + " the message: " + outJson);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     private void readMessages(BufferedReader buf) throws IOException {
-        processMessage(buf.readLine());
+        String tempMessage = null;
+        try{
+            tempMessage = buf.readLine();
+        } catch (IOException e){
+            LOGGER.severe("Error reading message from buffer " + e.getMessage());
+        }
+        if(tempMessage != null){
+            processMessage(tempMessage);
+        }
     }
 
     public Socket getSocket() {
@@ -292,13 +302,19 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
         try{
-            if(!Thread.currentThread().isInterrupted()){
+            while(!Thread.currentThread().isInterrupted()){
                 read();
-            }else{
-                throw new InterruptedException();
             }
+            throw new InterruptedException();
         }catch (InterruptedException e){
             // TODO decidir o que eu vou fazer aqui
+        }finally {
+            try{
+                clientSocket.close();
+            }catch (IOException e){
+                LOGGER.severe("Client socket close error " + e);
+            }
         }
     }
+
 }
