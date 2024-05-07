@@ -2,6 +2,9 @@ package com.sisdist.server;
 
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class DatabaseManager {
     // Configurações do banco de dados
@@ -82,20 +85,32 @@ public class DatabaseManager {
         }
     }
 
-    public static int updateClienteCandidato(int id, String novoNome, String novoEmail, String novaSenha) {
+    public static int updateClienteCandidato(int id, Map<String, String> camposAtualizados) {
         if (id < 1) {
             throw new IllegalArgumentException("ID must be greater than 0");
         }
 
-        String sql = "UPDATE Cliente_Candidato SET Nome = ?, Email = ?, Senha = ? WHERE ID = ?";
+        StringBuilder sqlBuilder = new StringBuilder("UPDATE Cliente_Candidato SET ");
+        List<String> campos = new ArrayList<>(camposAtualizados.keySet());
+        int totalCampos = campos.size();
+
+        for (int i = 0; i < totalCampos; i++) {
+            sqlBuilder.append(campos.get(i)).append(" = ?");
+            if (i < totalCampos - 1) {
+                sqlBuilder.append(", ");
+            }
+        }
+        sqlBuilder.append(" WHERE ID = ?");
+        String sql = sqlBuilder.toString();
         int rowsAffected = 0;
 
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, novoNome);
-            statement.setString(2, novoEmail);
-            statement.setString(3, novaSenha);
-            statement.setInt(4, id);
+            int paramIndex = 1;
+            for (String campo : campos) {
+                statement.setString(paramIndex++, camposAtualizados.get(campo));
+            }
+            statement.setInt(paramIndex, id);
             rowsAffected = statement.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -103,6 +118,7 @@ public class DatabaseManager {
 
         return rowsAffected;
     }
+
 
     public static void deleteClienteCandidato(int id) {
         String sql = "DELETE FROM Cliente_Candidato WHERE ID = ?";
