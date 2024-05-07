@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.logging.Logger;
 
+// TODO verificar os cases de novo antes da apresentacao
 
 public class ClientApplication {
     private static final Logger LOGGER = Logger.getLogger("ClientApplication");
