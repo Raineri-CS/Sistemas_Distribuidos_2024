@@ -10,12 +10,15 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
+import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS;
 import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS_WITH_TOKEN;
 import com.sisdist.common.messages.MESSAGE_TWO_PARAMETERS;
 import com.sisdist.common.messages.Message;
-import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Collections;
@@ -24,12 +27,10 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class ClientHandler implements Runnable {
+    private static final Logger LOGGER = Logger.getLogger((ClientHandler.class).toString());
     private final Socket clientSocket;
     private final String magicWord = "DISTRIBUIDOS";
-
     private final Algorithm algorithm = Algorithm.HMAC256(magicWord);
-
-    private static final Logger LOGGER = Logger.getLogger((ClientHandler.class).toString());
 
     public ClientHandler(Socket socket) {
         this.clientSocket = socket;
@@ -55,15 +56,15 @@ public class ClientHandler implements Runnable {
 
     public void read() {
         try {
-            if (!clientSocket.isClosed()){
+            if (!clientSocket.isClosed()) {
                 BufferedReader buf = new BufferedReader(new InputStreamReader((clientSocket.getInputStream())));
                 readMessages(buf);
-            }else{
+            } else {
                 // Bom, o cliente fechou a socket, logo, pode-se sair seguramente
                 // TODO =)
 
             }
-        }catch (SocketException se){
+        } catch (SocketException se) {
             LOGGER.severe("Error in ClientHandler read()" + se);
         } catch (IOException e) {
             LOGGER.severe("Error in ClientHandler read()" + e);
@@ -76,19 +77,19 @@ public class ClientHandler implements Runnable {
         // Definicao da mensagem que sempre vai sair
         MESSAGE_THREE_PARAMETERS out = null;
         // Definicao de variaveis para ajuda na legibilidade
-        String email;
-        String nome;
-        String senha;
+        String email = null;
+        String nome = null;
+        String senha = null;
         String token = null;
         String operation;
         // Definicao dos objetos a serem usados
         JsonObject jsonObject;
-        JsonObject dataObject;
+        JsonObject dataObject = null;
         Message jsonMessage = null;
-        Candidato sqlResult;
+        Candidato sqlResult = null;
         Map<String, String> tempData = new HashMap<>();
         DecodedJWT decJWT;
-
+        int candidateId;
 
         try {
             jsonObject = JsonParser.parseString(message).getAsJsonObject();
@@ -97,42 +98,38 @@ public class ClientHandler implements Runnable {
                 case "LOGIN_CANDIDATE":
                 case "LOGIN_RECRUITER":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
-                    // Para qualquer login, gerar o token para assinar o pacote
+                    if (!jsonObject.has("data")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
                     dataObject = jsonObject.get("data").getAsJsonObject();
+                    if (!dataObject.has("email") || !dataObject.has("password")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+                    if (dataObject.get("email").isJsonNull() || dataObject.get("password").isJsonNull()) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
                     email = dataObject.get("email").getAsString();
                     senha = dataObject.get("password").getAsString();
-                    if (!email.isEmpty() && !senha.isEmpty()) {
-                        // Informacoes vieram no pacote
-                        sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
 
-                        if (sqlResult != null) {
-                            if (senha.equals(sqlResult.getSenha())) {
-                                // Senha correta, mandar o pacote de aceitacao
-                                switch (operation) {
-                                    case "LOGIN_CANDIDATE":
-                                        token = genToken(sqlResult.getId(), "CANDIDATE");
-                                        break;
-                                    case "LOGIN_RECRUITER":
-                                        token = genToken(sqlResult.getId(), "RECRUITER");
-                                        break;
-                                    default:
-                                }
-                                tempData.put("token", token);
-                                out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", tempData);
-                            } else {
-                                // Infos incorretas, mandar o pacote de recusa
-                                // TODO INCONSISTENCIAS DO DOCUMENTO, VERIFICAR COM A TURMA
-                                out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
-                            }
-                        }else{
-                            // Se entrar aqui nao achou
+                    sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+
+                    if (sqlResult != null) {
+                        if (senha.equals(sqlResult.getSenha())) {
+                            token = genToken(sqlResult.getId(), "CANDIDATE");
+                            tempData.put("token", token);
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", tempData);
+                        } else {
                             out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_LOGIN", Collections.emptyMap());
                         }
                     } else {
-                        // TODO tratar quando o pacote vir faltando dados
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_LOGIN", Collections.emptyMap());
                     }
-
-//                    token = genToken()
                     break;
                 case "LOGOUT_CANDIDATE":
                 case "LOGOUT_RECRUITER":
@@ -141,12 +138,23 @@ public class ClientHandler implements Runnable {
                     break;
                 case "SIGNUP_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
-                    dataObject = jsonObject.getAsJsonObject("data");
+                    if (jsonObject.has("data")) {
+                        dataObject = jsonObject.getAsJsonObject("data");
+                    } else {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+                    if (dataObject == null || (!dataObject.has("name") || dataObject.get("name").isJsonNull() || !dataObject.has("email") || dataObject.get("email").isJsonNull() || !dataObject.has("password") || dataObject.get("password").isJsonNull())) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+
                     nome = dataObject.get("name").getAsString();
                     email = dataObject.get("email").getAsString();
                     senha = dataObject.get("password").getAsString();
 
-                    // Verifica se o email eh valido
                     if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
                         break;
@@ -154,129 +162,151 @@ public class ClientHandler implements Runnable {
 
                     sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
 
-                    // Read volta nulo se nao existir
-                    if (sqlResult == null) {
-                        if (!nome.isBlank() && !email.isBlank() && !senha.isBlank()) {
-                            // Se os campos vieram de verdade (email ja foi validado aqui
-                            DatabaseManager.createClienteCandidato(nome, email, senha);
-                            // Montar a mensagem de sucesso pro out
-                            out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
-                        } else {
-                            // Se algum dos campos está em branco, não é possível criar o cliente
-                            out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
-                        }
-                    } else {
-                        // FIXME tratar quando o cliente ja existe
-                        // Se chegou aqui, significa que o cliente já existe
+                    // Se o resultado nao for nulo, o cliente existe
+                    if (sqlResult != null) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "USER_EXISTS", Collections.emptyMap());
+                        break;
                     }
+
+                    // Se algum campo estiver em branco...
+                    if (nome.isBlank() || email.isBlank() || senha.isBlank()) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+                    DatabaseManager.createClienteCandidato(nome, email, senha);
+                    out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
+
                 case "LOOKUP_ACCOUNT_CANDIDATE":
-                    // FIXME usar o gson.fromJson eh uma boa ideia no papel, mas eu to lendo os campos direto do jsonObject, talves pipocar tudo? @joaokrejci
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
-                    // NOTE lembrar que esse email eh o email que o dono do token quer consultar
-//                    email = jsonObject.get("email").getAsString();
-                    token = jsonObject.get("token").getAsString();
-                    if ((decJWT = verifyToken(token)) == null) {
+                    if (!jsonObject.has("token")) {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
                         break;
                     }
-//                    if(email == null){
-//                        sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
-//                    }else{
-                    sqlResult = DatabaseManager.readClienteCandidato(Integer.parseInt(decJWT.getClaim("id").asString()));
-//                    }
-
-                    if(sqlResult == null){
-                        // FIXME QUE ODIO, OS MLK ESQUECERAM DESSE CASO
-                        out = new MESSAGE_THREE_PARAMETERS(operation, "USER_NOT_FOUND", Collections.emptyMap());
-                    }else{
-                        // Reutilizando o pointer de dataObject que nao eh nem usado nessa thread se cair nesse caso mesmo
-                        tempData = Map.of("email", sqlResult.getEmail(),"name", sqlResult.getNome(),"password",sqlResult.getSenha());
-                        out = new MESSAGE_THREE_PARAMETERS(operation,"SUCCESS",tempData);
-                    }
-
-
-                    break;
-                case "UPDATE_ACCOUNT_CANDIDATE":
-                    // TODO check ALL fields that come in on ALL operations pls =)
-                    // TODO if to be updated email is the same as the one in the database and decJWT id == Database ID, allow update
-                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
-
-                    // Esses caras foram subidos, para que nao seja necessario colocar um if do email ali em baixo
-                    dataObject = jsonObject.getAsJsonObject("data");
-                    email = dataObject.get("email").getAsString();
-                    token = jsonObject.get("token").getAsString();
-
-                    // FIXME porra caralho buceta os dois documentos falam coisas diferentes
-                    if ((decJWT = verifyToken(token)) == null && !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
-                        // Deu merda, isso aqui nao eh um token valido
-                        // FIXME tem inconsistencias nos documentos, confirmar se vai voltar INVALID_FIELD pra todo erro ou se o erro do token vai mesmo voltar INVALID_TOKEN
-                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
-                        break;
-                    }
-                    // Os caras a serem atualizados vem por aqui
-                    nome = dataObject.get("name").getAsString();
-                    senha = dataObject.get("password").getAsString();
-
-                    // Nesse ponto, como o dataObject nao jogou nenhuma excecao, veio todos os campos
-                    // TODO VER QUEM EH O USUARIO E SE O MESMO TEM PREVILEGIO DE EDICAO DE QUALQUER PORRA
-                    // TODO Isso tem que ver com o professor provavelmente
-
-                    // NOTE sim, isso eh HORRIVEL, mas o intellij ficava me ENCHENDO O SACO de getClaim poder soltar um nullpointerexception
-                    Integer tempInt = null;
-                    if (decJWT != null) {
-                        tempInt = Integer.parseInt(decJWT.getClaim("id").asString());
-                    }
-                    sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
-                    // TODO esse tempInt ai, que pode virar nullpointerexception, to com preguica agora
-                    if ((sqlResult != null) && sqlResult.getId() != tempInt) {
-                        // Fodeu, quer dizer que encontrou um usuario com esse email que eu quero colocar (email eh um valor unico no banco)
-                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_EMAIL", Collections.emptyMap());
-                    } else {
-                        // Po, os dados tao certos, decJWT veio sem ser nulo, e o email que eu quero colocar nesse novo user nao esta sendo utilizado, entao manda bala
-                        if (DatabaseManager.updateClienteCandidato(tempInt != null ? tempInt : -1, nome, email, senha) < 3){
-                            // Quer dizer que nao atualizou as 3 propriedades, o divertido eh que a query nao te fala qual, boa sorte =)
-                            // Certo, em cima eu checo se tem algum email conflitante, entao se esse numero for menor que 3, quer dizer que
-                            // ou o nome, ou a senha nao foram alterados, o que, no grande esquema do problema, grande foda-se
-                            // TODO procurar um jeito de fazer isso sem ter que re consultar o bd
-                            LOGGER.warning("Either the password or the name are the same and thus they weren't updated");
-                        }
-                        out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
-                    }
-                    break;
-                case "DELETE_ACCOUNT_CANDIDATE":
-                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
 
                     token = jsonObject.get("token").getAsString();
-//                    dataObject = jsonObject.getAsJsonObject("data");
-
                     if ((decJWT = verifyToken(token)) == null) {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_TOKEN", Collections.emptyMap());
                         break;
                     }
 
-                    DatabaseManager.deleteClienteCandidato(Integer.parseInt(decJWT.getClaim("id").asString()));
+                    candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
+
+                    sqlResult = DatabaseManager.readClienteCandidato(candidateId);
+
+                    if (sqlResult == null) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "USER_NOT_FOUND", Collections.emptyMap());
+                    } else {
+                        Map<String, String> auxData = Map.of("email", sqlResult.getEmail(), "name", sqlResult.getNome(), "password", sqlResult.getSenha());
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", auxData);
+                    }
+                    break;
+
+                case "UPDATE_ACCOUNT_CANDIDATE":
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
+                    if (!jsonObject.has("token") || !jsonObject.has("data")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+                    dataObject = jsonObject.getAsJsonObject("data");
+
+                    if (!dataObject.has("name") && !dataObject.has("email") && !dataObject.has("password")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+                    email = dataObject.has("email") ? dataObject.get("email").getAsString() : null;
+                    nome = dataObject.has("name") ? dataObject.get("name").getAsString() : null;
+                    senha = dataObject.has("password") ? dataObject.get("password").getAsString() : null;
+                    token = jsonObject.get("token").getAsString();
+
+                    decJWT = verifyToken(token);
+                    if (decJWT == null) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_TOKEN", Collections.emptyMap());
+                        break;
+                    }
+
+                    if (email != null && !email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+                    candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
+
+                    if (email != null) {
+                        sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+                        if (sqlResult != null && sqlResult.getId() != candidateId) {
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_EMAIL", Collections.emptyMap());
+                            break;
+                        }
+                    }
+
+                    // Construir um map<string,string> para os param que vao ser atualizados
+                    Map<String, String> camposAtualizados = new HashMap<>();
+
+                    if(email != null){
+                        camposAtualizados.put("Email", email);
+                    }
+
+                    if(nome != null){
+                        camposAtualizados.put("Nome", nome);
+                    }
+
+                    if(senha != null){
+                        camposAtualizados.put("Senha", senha);
+                    }
+
+                    if (DatabaseManager.updateClienteCandidato(candidateId, camposAtualizados) < 3) {
+                        LOGGER.warning("Either the password or the name are the same and thus they weren't updated");
+                    }
 
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
+
+
+                case "DELETE_ACCOUNT_CANDIDATE":
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
+                    if (!jsonObject.has("token")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    } else {
+                        // Tem o field token
+                        // Checar pra ver se token eh vazio
+                        token = jsonObject.get("token").getAsString();
+                        if (token.isEmpty()) {
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                            break;
+                        }
+                    }
+
+
+                    decJWT = verifyToken(token);
+                    if (decJWT == null) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_TOKEN", Collections.emptyMap());
+                        break;
+                    }
+
+                    candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
+
+                    DatabaseManager.deleteClienteCandidato(candidateId);
+
+                    out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
+                    break;
+
                 default:
                     out = new MESSAGE_THREE_PARAMETERS("NAO_EXISTE", "", Collections.emptyMap());
             }
             if (jsonMessage == null) throw new JsonParseException("");
 
         } catch (Exception e) {
-//            e.printStackTrace();
             out = new MESSAGE_THREE_PARAMETERS(null, "REJECTED", Collections.emptyMap());
         }
 
         String outJson = gson.toJson(out);
-//        outJson = outJson.concat("\n");
         try {
-//            BufferedWriter writer = new BufferedWriter( new OutputStreamWriter( clientSocket.getOutputStream() ) );
-            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(),true);
+            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream(), true);
             writer.println(outJson);
-//            writer.write((outJson));
-//            writer.flush();
             LOGGER.info("Sending to " + clientSocket.getInetAddress().toString() + " the message: " + outJson);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -285,12 +315,12 @@ public class ClientHandler implements Runnable {
 
     private void readMessages(BufferedReader buf) throws IOException {
         String tempMessage = null;
-        try{
+        try {
             tempMessage = buf.readLine();
-        } catch (IOException e){
+        } catch (IOException e) {
             LOGGER.severe("Error reading message from buffer " + e.getMessage());
         }
-        if(tempMessage != null){
+        if (tempMessage != null) {
             processMessage(tempMessage);
         }
     }
@@ -301,17 +331,17 @@ public class ClientHandler implements Runnable {
 
     @Override
     public void run() {
-        try{
-            while(!Thread.currentThread().isInterrupted()){
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
                 read();
             }
             throw new InterruptedException();
-        }catch (InterruptedException e){
+        } catch (InterruptedException e) {
             // TODO decidir o que eu vou fazer aqui
-        }finally {
-            try{
+        } finally {
+            try {
                 clientSocket.close();
-            }catch (IOException e){
+            } catch (IOException e) {
                 LOGGER.severe("Client socket close error " + e);
             }
         }
