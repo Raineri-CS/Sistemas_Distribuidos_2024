@@ -131,11 +131,24 @@ public class ClientHandler implements Runnable {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_LOGIN", Collections.emptyMap());
                     }
                     break;
-                case "LOGOUT_CANDIDATE":
                 case "LOGOUT_RECRUITER":
+                case "LOGOUT_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
-                    // TODO as mensagens atribuindo pra out
+
+                    if(!jsonObject.has("token") || jsonObject.get("token").isJsonNull()) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    }
+
+                    if(verifyToken(jsonObject.get("token").getAsString()) == null){
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_TOKEN", Collections.emptyMap());
+                        break;
+                    }
+                    // Aqui ja verificou o token, voltar sucesso
+                    out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
+
+
                 case "SIGNUP_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
                     if (jsonObject.has("data")) {
@@ -293,7 +306,6 @@ public class ClientHandler implements Runnable {
 
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
-
                 default:
                     out = new MESSAGE_THREE_PARAMETERS("NAO_EXISTE", "", Collections.emptyMap());
             }

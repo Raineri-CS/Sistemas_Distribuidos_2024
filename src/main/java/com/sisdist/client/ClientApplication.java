@@ -371,7 +371,52 @@ public class ClientApplication {
     }
 
     private void logout() {
-        this.token = "";
+        Gson gson = new Gson();
+        msg = new MESSAGE_THREE_PARAMETERS_WITH_TOKEN("LOGOUT_CANDIDATE", this.token, Collections.emptyMap());
+
+        String outMsg = gson.toJson(msg);
+
+        String response = sendMsg(outMsg);
+
+        jsonObject = JsonParser.parseString(response).getAsJsonObject();
+        String result = jsonObject.get("status").getAsString();
+        if (!result.isBlank()) {
+            switch (result) {
+                case "SUCCESS":
+                    // Tudo certo
+                    System.out.println("Candidato fez logout com sucesso!");
+                    this.token = "";
+                    return;
+                case "INVALID_FIELD":
+                    System.out.println("Algum dos campos foi enviado em branco (ou o servidor interpretou errado).");
+                    System.out.println("(pressione enter para continuar)");
+                    try {
+                        reader.readLine();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return;
+                case "INVALID_TOKEN":
+                    System.out.println("O servidor acionou que o token veio errado");
+                    System.out.println("(pressione enter para continuar)");
+                    try {
+                        reader.readLine();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    break;
+                case "REJECTED":
+                    // NOTE isso nao esta na spec da turma, eh pra teste meu
+                    LOGGER.severe("UEPA, ERROU AI FOI? NUM CONXEGUE");
+                    return;
+                default:
+                    // Putz, dai o server errou
+                    LOGGER.severe("Server sent malformed message, check logs to learn more.");
+            }
+        } else {
+            // Just... how did you arrive here?
+            LOGGER.severe("This piece of code should NEVER be executed @cadastrarClienteCandidato");
+        }
     }
 
     private String sendMsg(String outMsg) {
