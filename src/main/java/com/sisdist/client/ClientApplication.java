@@ -27,6 +27,8 @@ public class ClientApplication {
     private Integer option = 999;
     private String token = "";
 
+    private Socket sock = null;
+
     private Message msg;
     private JsonObject jsonObject;
 
@@ -36,6 +38,13 @@ public class ClientApplication {
     public ClientApplication(String IP, int PORT) {
         this.IP = IP;
         this.PORT = PORT;
+        try {
+            sock = new Socket();
+            sock.connect(new InetSocketAddress(this.IP, this.PORT));
+        } catch (IOException e) {
+            LOGGER.severe("Error creating socket");
+
+        }
     }
 
     public void start() {
@@ -44,7 +53,7 @@ public class ClientApplication {
         reader = new BufferedReader((new InputStreamReader(System.in)));
 
 
-        while (option != 0) {
+        do{
             // NOTE, NAO LIMPAR O CONSOLE DEPOIS QUE SAIR DO CRUD PARA PODER VER O QUE VEIO NO LOGGER (ESTA PRINTANDO NO STDOUT)
             printMenu();
             try {
@@ -86,12 +95,17 @@ public class ClientApplication {
                     break;
                 case 0:
                     System.out.println("Saindo do programa...");
+                    try{
+                        sock.close();
+                    }catch (IOException e){
+                        LOGGER.severe("Error closing socket");
+                    }
                     break;
                 default:
                     System.out.println("Opção inválida. Por favor, escolha uma opção válida.");
                     break;
             }
-        }
+        }while (option != 0);
     }
 
     private void printMenu() {
@@ -421,35 +435,34 @@ public class ClientApplication {
     }
 
     private String sendMsg(String outMsg) {
-        try (Socket socket = new Socket()) {
-            socket.connect(new InetSocketAddress(IP, PORT));
 
-            if (socket.isConnected()) {
-                PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+        if (sock.isConnected()) {
+            try {
+                PrintWriter writer = new PrintWriter(sock.getOutputStream(), true);
 
                 LOGGER.info("Sending message " + outMsg + " to the server");
 
                 // Enviar o JSON usando o printWriter
                 writer.println(outMsg.strip());
 
-                BufferedReader buf = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedReader buf = new BufferedReader(new InputStreamReader(sock.getInputStream()));
 
                 String line;
                 line = buf.readLine();
                 if (line == null) {
                     // Deu merda
                     LOGGER.severe("Server message arrived NULL, closing socket and throwing IOException");
-                    socket.close();
                     throw new IOException();
                 }
                 LOGGER.info("Client recieved " + line + " from server");
                 return line;
-            } else {
-                LOGGER.severe("Couldnt connect to server");
+            } catch (IOException e) {
+                LOGGER.severe("Server message arrived IOException, closing socket and throwing IOException");
             }
-        } catch (IOException e) {
-            LOGGER.severe("Error creating socket");
+        } else {
+            LOGGER.severe("Couldnt connect to server");
         }
+
         return "";
     }
 
