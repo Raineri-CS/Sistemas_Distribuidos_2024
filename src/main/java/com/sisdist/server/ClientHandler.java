@@ -15,6 +15,7 @@ import com.sisdist.common.messages.MESSAGE_THREE_PARAMETERS_WITH_TOKEN;
 import com.sisdist.common.messages.MESSAGE_TWO_PARAMETERS;
 import com.sisdist.common.messages.Message;
 
+import javax.xml.crypto.Data;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -81,22 +82,27 @@ public class ClientHandler implements Runnable {
         String nome = null;
         String senha = null;
         String token = null;
+        String ramo = null;
+        String descricao = null;
         String operation;
         // Definicao dos objetos a serem usados
         JsonObject jsonObject;
         JsonObject dataObject = null;
         Message jsonMessage = null;
-        Candidato sqlResult = null;
+        Cliente sqlResult = null;
         Map<String, String> tempData = new HashMap<>();
         DecodedJWT decJWT;
         int candidateId;
+        boolean isCandidate = true;
 
         try {
             jsonObject = JsonParser.parseString(message).getAsJsonObject();
             operation = jsonObject.get("operation").getAsString();
             switch (operation) {
-                case "LOGIN_CANDIDATE":
                 case "LOGIN_RECRUITER":
+                    isCandidate = false;
+                    // Fall through
+                case "LOGIN_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
                     if (!jsonObject.has("data")) {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
@@ -116,12 +122,19 @@ public class ClientHandler implements Runnable {
 
                     email = dataObject.get("email").getAsString();
                     senha = dataObject.get("password").getAsString();
-
-                    sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+                    if(isCandidate){
+                        sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+                    }else{
+                        sqlResult = DatabaseManager.readClienteEmpresaFromEmail(email);
+                    }
 
                     if (sqlResult != null) {
                         if (senha.equals(sqlResult.getSenha())) {
-                            token = genToken(sqlResult.getId(), "CANDIDATE");
+                            if(isCandidate){
+                                token = genToken(sqlResult.getId(), "CANDIDATE");
+                            }else{
+                                token = genToken(sqlResult.getId(), "RECRUITER");
+                            }
                             tempData.put("token", token);
                             out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", tempData);
                         } else {
@@ -148,6 +161,8 @@ public class ClientHandler implements Runnable {
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
 
+                case "SIGNUP_RECRUITER":
+                    isCandidate = false;
 
                 case "SIGNUP_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_TWO_PARAMETERS.class);
@@ -167,6 +182,10 @@ public class ClientHandler implements Runnable {
                     nome = dataObject.get("name").getAsString();
                     email = dataObject.get("email").getAsString();
                     senha = dataObject.get("password").getAsString();
+                    if(!isCandidate){
+                        ramo = dataObject.get("industry").getAsString();
+                        descricao = dataObject.get("description").getAsString();
+                    }
 
                     if (!email.matches("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$")) {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
@@ -186,11 +205,15 @@ public class ClientHandler implements Runnable {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
                         break;
                     }
-
-                    DatabaseManager.createClienteCandidato(nome, email, senha);
+                    if(isCandidate){
+                        DatabaseManager.createClienteCandidato(nome, email, senha);
+                    }else{
+                        DatabaseManager.createClienteEmpresa(nome, email, senha, ramo, descricao);
+                    }
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
-
+                case "LOOKUP_ACCOUNT_RECRUITER":
+                    isCandidate = false;
                 case "LOOKUP_ACCOUNT_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
                     if (!jsonObject.has("token")) {
@@ -206,16 +229,27 @@ public class ClientHandler implements Runnable {
 
                     candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
 
-                    sqlResult = DatabaseManager.readClienteCandidato(candidateId);
+                    if(isCandidate){
+                        sqlResult = DatabaseManager.readClienteCandidato(candidateId);
+                    }else{
+                        sqlResult = DatabaseManager.readClienteEmpresa(candidateId);
+                    }
 
                     if (sqlResult == null) {
                         out = new MESSAGE_THREE_PARAMETERS(operation, "USER_NOT_FOUND", Collections.emptyMap());
                     } else {
-                        Map<String, String> auxData = Map.of("email", sqlResult.getEmail(), "name", sqlResult.getNome(), "password", sqlResult.getSenha());
+                        Map<String, String> auxData;
+                        if(isCandidate){
+                            auxData = Map.of("email", sqlResult.getEmail(), "name", sqlResult.getNome(), "password", sqlResult.getSenha());
+                        }else{
+                            auxData = Map.of("email", sqlResult.getEmail(), "name", sqlResult.getNome(), "password", sqlResult.getSenha(), "industry", ((Empresa) sqlResult).getRamo(), "description", ((Empresa) sqlResult).getDescricao());
+                        }
                         out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", auxData);
                     }
                     break;
 
+                case "UPDATE_ACCOUNT_RECRUITER":
+                    isCandidate = false;
                 case "UPDATE_ACCOUNT_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
                     if (!jsonObject.has("token") || !jsonObject.has("data")) {
@@ -233,6 +267,10 @@ public class ClientHandler implements Runnable {
                     nome = dataObject.has("name") ? dataObject.get("name").getAsString() : null;
                     senha = dataObject.has("password") ? dataObject.get("password").getAsString() : null;
                     token = jsonObject.get("token").getAsString();
+                    if(!isCandidate){
+                        ramo = dataObject.has("industry") ? dataObject.get("industry").getAsString() : null;
+                        descricao = dataObject.has("description") ? dataObject.get("description").getAsString() : null;
+                    }
 
                     decJWT = verifyToken(token);
                     if (decJWT == null) {
@@ -248,7 +286,12 @@ public class ClientHandler implements Runnable {
                     candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
 
                     if (email != null) {
-                        sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+                        if(isCandidate){
+                            sqlResult = DatabaseManager.readClienteCandidatoFromEmail(email);
+                        }else{
+                            sqlResult = DatabaseManager.readClienteEmpresaFromEmail(email);
+                        }
+
                         if (sqlResult != null && sqlResult.getId() != candidateId) {
                             out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_EMAIL", Collections.emptyMap());
                             break;
@@ -270,14 +313,30 @@ public class ClientHandler implements Runnable {
                         camposAtualizados.put("Senha", senha);
                     }
 
-                    if (DatabaseManager.updateClienteCandidato(candidateId, camposAtualizados) < 3) {
-                        LOGGER.warning("Either the password or the name are the same and thus they weren't updated");
+                    if(!isCandidate){
+                        if(ramo != null){
+                            camposAtualizados.put("Ramo", ramo);
+                        }
+
+                        if(descricao != null){
+                            camposAtualizados.put("Descricao", descricao);
+                        }
+                    }
+                    if(isCandidate){
+                        if (DatabaseManager.updateClienteCandidato(candidateId, camposAtualizados) < 3) {
+                            LOGGER.warning("Either the password or the name are the same and thus they weren't updated");
+                        }
+                    }else{
+                        if (DatabaseManager.updateClienteEmpresa(candidateId, camposAtualizados) < 5) {
+                            LOGGER.warning("Either the password or the name are the same and thus they weren't updated");
+                        }
                     }
 
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
 
-
+                case "DELETE_ACCOUNT_RECRUITER":
+                    isCandidate = false;
                 case "DELETE_ACCOUNT_CANDIDATE":
                     jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
                     if (!jsonObject.has("token")) {
@@ -301,8 +360,11 @@ public class ClientHandler implements Runnable {
                     }
 
                     candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
-
-                    DatabaseManager.deleteClienteCandidato(candidateId);
+                    if (isCandidate) {
+                        DatabaseManager.deleteClienteCandidato(candidateId);
+                    }else{
+                        DatabaseManager.deleteClienteEmpresa(candidateId);
+                    }
 
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
