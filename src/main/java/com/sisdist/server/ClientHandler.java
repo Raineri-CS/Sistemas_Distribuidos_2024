@@ -22,6 +22,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -84,6 +86,7 @@ public class ClientHandler implements Runnable {
         String token = null;
         String ramo = null;
         String descricao = null;
+        String skill = null;
         String operation;
         // Definicao dos objetos a serem usados
         JsonObject jsonObject;
@@ -92,6 +95,8 @@ public class ClientHandler implements Runnable {
         Cliente sqlResult = null;
         Map<String, String> tempData = new HashMap<>();
         DecodedJWT decJWT;
+        int experience = -1;
+        int tempSkillId = -1;
         int candidateId;
         boolean isCandidate = true;
 
@@ -368,6 +373,52 @@ public class ClientHandler implements Runnable {
 
                     out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
                     break;
+
+                case "INCLUDE_SKILL":
+                    jsonMessage = gson.fromJson(jsonObject, MESSAGE_THREE_PARAMETERS_WITH_TOKEN.class);
+                    if (!jsonObject.has("token") || !jsonObject.has("data")) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                        break;
+                    } else {
+                        // Tem o field token
+                        // Checar pra ver se token eh vazio
+                        token = jsonObject.get("token").getAsString();
+                        if (token.isEmpty()) {
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                            break;
+                        }
+                    }
+
+                    dataObject = jsonObject.getAsJsonObject("data");
+
+                    if(!dataObject.has("skill") || !dataObject.has("experience")){
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_FIELD", Collections.emptyMap());
+                    }else{
+                        tempSkillId = DatabaseManager.getSkillId(dataObject.get("skill").getAsString());
+                        if (tempSkillId == -1){
+                            out = new MESSAGE_THREE_PARAMETERS(operation, "SKILL_NOT_EXIST", Collections.emptyMap());
+                            break;
+                        }
+                        experience = dataObject.get("experience").getAsInt();
+                    }
+
+
+                    decJWT = verifyToken(token);
+                    if (decJWT == null) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "INVALID_TOKEN", Collections.emptyMap());
+                        break;
+                    }
+                    candidateId = Integer.parseInt(decJWT.getClaim("id").asString());
+
+                    try {
+                        DatabaseManager.createCompetenciaExperiencia(candidateId, tempSkillId, experience);
+                    } catch (SQLIntegrityConstraintViolationException e) {
+                        out = new MESSAGE_THREE_PARAMETERS(operation, "SKILL_EXISTS", Collections.emptyMap());
+                        break;
+                    }
+                    out = new MESSAGE_THREE_PARAMETERS(operation, "SUCCESS", Collections.emptyMap());
+                    break;
+
                 default:
                     out = new MESSAGE_THREE_PARAMETERS("NAO_EXISTE", "", Collections.emptyMap());
             }

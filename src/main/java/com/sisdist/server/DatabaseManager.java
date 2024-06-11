@@ -12,7 +12,8 @@ public class DatabaseManager {
     private static final String USER = "root";
     private static final String PASSWORD = "0910";
 
-    public DatabaseManager(){}
+    public DatabaseManager() {
+    }
 
     public static Connection getConnection() throws SQLException {
         Connection connection = DriverManager.getConnection(URL, USER, PASSWORD);
@@ -240,6 +241,115 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void createCompetenciaExperiencia(int idCandidato, int idCompetencia, int experiencia) throws SQLIntegrityConstraintViolationException{
+        String sql = "INSERT INTO Competencias_Experiencia (ID_Candidato, ID_Competencia, Experiencia) VALUES (?, ?, ?)";
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, idCandidato);
+            statement.setInt(2, idCompetencia);
+            statement.setInt(3, experiencia);
+            statement.executeUpdate();
+        } catch (SQLIntegrityConstraintViolationException e) {
+            throw e;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int updateCompetenciaExperiencia(int idCandidato, int idCompetencia, int experiencia) {
+        String sql = "UPDATE Competencias_Experiencia SET Experiencia = ? WHERE ID_Candidato = ? AND ID_Competencia = ?";
+        int rowsAffected = 0;
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, experiencia);
+            statement.setInt(2, idCandidato);
+            statement.setInt(3, idCompetencia);
+            rowsAffected = statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return rowsAffected;
+    }
+
+    public static void deleteCompetenciaExperiencia(int idCandidato, int idCompetencia) {
+        String sql = "DELETE FROM Competencias_Experiencia WHERE ID_Candidato = ? AND ID_Competencia = ?";
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, idCandidato);
+            statement.setInt(2, idCompetencia);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void createCompetenciaRequerida(int idVaga, int idCompetencia, int experienciaRequerida) {
+        String sql = "INSERT INTO Competencias_Requeridas (ID_Vaga, ID_Competencia, Experiencia_Requerida) VALUES (?, ?, ?)";
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, idVaga);
+            statement.setInt(2, idCompetencia);
+            statement.setInt(3, experienciaRequerida);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int updateCompetenciaRequerida(int idVaga, int idCompetencia, int experienciaRequerida) {
+        String sql = "UPDATE Competencias_Requeridas SET Experiencia_Requerida = ? WHERE ID_Vaga = ? AND ID_Competencia = ?";
+        int rowsAffected = 0;
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, experienciaRequerida);
+            statement.setInt(2, idVaga);
+            statement.setInt(3, idCompetencia);
+            rowsAffected = statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return rowsAffected;
+    }
+
+    public static void deleteCompetenciaRequerida(int idVaga, int idCompetencia) {
+        String sql = "DELETE FROM Competencias_Requeridas WHERE ID_Vaga = ? AND ID_Competencia = ?";
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, idVaga);
+            statement.setInt(2, idCompetencia);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int getSkillId(String skillName) {
+        String sql = "SELECT ID FROM Skill_Dataset WHERE Competencia = ?";
+        int skillId = -1;
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, skillName);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                skillId = resultSet.getInt("ID");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return skillId;
     }
 
 }
