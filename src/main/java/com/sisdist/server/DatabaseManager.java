@@ -10,7 +10,7 @@ public class DatabaseManager {
     // Configurações do banco de dados
     private static final String URL = "jdbc:mysql://localhost:3306/";
     private static final String USER = "root";
-    private static final String PASSWORD = "0910";
+    private static final String PASSWORD = "your_password_here";
 
     public DatabaseManager() {
     }
